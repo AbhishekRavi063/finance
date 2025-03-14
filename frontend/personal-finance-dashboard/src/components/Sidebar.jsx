@@ -3,9 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaChartBar, FaWallet, FaBalanceScale, FaFileAlt, FaCog, FaSignOutAlt } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { auth } from "../../lib/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "next/router";
 
 export default function Sidebar() {
-  const pathname = usePathname(); // ✅ Correct way to get current path
+  const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setUser(user);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/");
+  };
 
   const menuItems = [
     { name: "Dashboard", href: "/dashboard", icon: <FaChartBar /> },
@@ -20,11 +40,11 @@ export default function Sidebar() {
       {/* Profile Section */}
       <div className="flex items-center space-x-3">
         <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center text-lg font-bold">
-          AB
+          {user?.displayName ? user.displayName.charAt(0) : "U"}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">abhishek1</h2>
-          <p className="text-gray-400 text-sm">ID: 4</p>
+          <h2 className="text-lg font-semibold text-white">{user?.displayName || "Guest"}</h2>
+          <p className="text-gray-400 text-sm">{user?.email}</p>
         </div>
       </div>
 
@@ -43,9 +63,14 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout Button */}
-      <button className="mt-auto bg-red-600 py-2 px-3 rounded-md hover:bg-red-700 transition flex items-center justify-center">
-        <FaSignOutAlt className="mr-2" /> Logout
-      </button>
+      {user && (
+        <button
+          onClick={handleLogout}
+          className="mt-auto bg-red-600 py-2 px-3 rounded-md hover:bg-red-700 transition flex items-center justify-center"
+        >
+          <FaSignOutAlt className="mr-2" /> Logout
+        </button>
+      )}
     </aside>
   );
 }

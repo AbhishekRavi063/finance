@@ -6,15 +6,30 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 
 // 🟢 GET All Transactions
 router.get("/", async (req, res) => {
-    const { user_id } = req.query; // Filter by user_id if needed
+    const { firebase_uid } = req.query;
 
-    let query = supabase.from("transactions").select("*");
-
-    if (user_id) {
-        query = query.eq("user_id", user_id);
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Firebase UID is required" });
     }
 
-    const { data, error } = await query;
+    // ✅ Step 1: Fetch the user ID from the "users" table
+    const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("firebase_uid", firebase_uid)
+        .maybeSingle();
+
+    if (userError || !userData) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const user_id = userData.id;
+
+    // ✅ Step 2: Fetch transactions for the user
+    const { data, error } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("user_id", user_id);
 
     if (error) {
         return res.status(500).json({ error: error.message });
@@ -22,8 +37,6 @@ router.get("/", async (req, res) => {
 
     res.json(data);
 });
-
-
 
 router.post("/", async (req, res) => {
     const { type, amount, category, description, date, firebase_uid } = req.body;
@@ -34,41 +47,59 @@ router.post("/", async (req, res) => {
 
     console.log("Received Firebase UID:", firebase_uid);
 
-    // ✅ Fetch the corresponding user ID from auth.users
+    // ✅ Step 1: Fetch the user ID from the "users" table
     const { data: userData, error: userError } = await supabase
-      .from("users") // ✅ Query "users" table, not "auth.users"
-      .select("*")
-      .eq("firebase_uid", firebase_uid)
-      .single();
-      
-      if (userError) {
-        console.error("Error fetching user from users table:", userError);
-    } else {
-        console.log("User found:", userData);
+        .from("users")
+        .select("id")
+        .eq("firebase_uid", firebase_uid)
+        .maybeSingle();
+
+    if (userError) {
+        console.error("Error fetching user from users table:", userError.message);
+        return res.status(500).json({ error: "Database error while fetching user" });
     }
 
-    const user_id = userData.id;
-    console.log("Resolved Supabase User ID:", user_id);
+    let user_id;
 
-    // ✅ Ensure type is lowercase to match the DB constraint
+    // ✅ Step 2: If user is not found, insert a new user
+    if (!userData) {
+        console.log("User not found. Creating new user...");
+        const { data: newUser, error: insertError } = await supabase
+            .from("users")
+            .insert([{ firebase_uid }])
+            .select("id")
+            .single();
+
+        if (insertError) {
+            console.error("Error inserting new user:", insertError.message);
+            return res.status(500).json({ error: "Failed to create user" });
+        }
+
+        user_id = newUser.id;
+        console.log("New user created with ID:", user_id);
+    } else {
+        user_id = userData.id;
+        console.log("User found with ID:", user_id);
+    }
+
+    // ✅ Step 3: Normalize transaction type
     const normalizedType = type.toLowerCase();
 
-    // ✅ Validate transaction type
     if (!["income", "expense"].includes(normalizedType)) {
         return res.status(400).json({ error: "Invalid type. Allowed values: 'income', 'expense'" });
     }
 
-    // ✅ Ensure the date is in ISO format
+    // ✅ Step 4: Ensure date format is correct
     const formattedDate = new Date(date).toISOString();
 
-    // ✅ Insert transaction into the database
+    // ✅ Step 5: Insert transaction into "transactions" table
     const { data, error } = await supabase
         .from("transactions")
         .insert([{ user_id, type: normalizedType, amount, category, description, date: formattedDate }])
         .select();
 
     if (error) {
-        console.error("Error inserting transaction:", error);
+        console.error("Error inserting transaction:", error.message);
         return res.status(500).json({ error: error.message });
     }
 
@@ -78,35 +109,83 @@ router.post("/", async (req, res) => {
 });
 
 
-
-
-// 🟢 GET Single Transaction by ID
+// 🟢 GET Single Transaction (Only if it belongs to the user)
 router.get("/:id", async (req, res) => {
     const { id } = req.params;
+    const { firebase_uid } = req.query;
 
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Firebase UID is required" });
+    }
+
+    // ✅ Step 1: Fetch the user ID
+    const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("firebase_uid", firebase_uid)
+        .maybeSingle();
+
+    if (userError || !userData) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const user_id = userData.id;
+
+    // ✅ Step 2: Fetch transaction only if it belongs to the user
     const { data, error } = await supabase
         .from("transactions")
         .select("*")
         .eq("id", id)
-        .single();
+        .eq("user_id", user_id)
+        .maybeSingle();
 
-    if (error) {
-        return res.status(404).json({ error: "Transaction not found" });
+    if (error || !data) {
+        return res.status(404).json({ error: "Transaction not found or unauthorized" });
     }
 
     res.json(data);
 });
 
-// 🟡 UPDATE Transaction
+
+// 🟡 UPDATE Transaction (Only if it belongs to the user)
 router.put("/:id", async (req, res) => {
     const { id } = req.params;
-    const { type, amount, category, description, date } = req.body;
+    const { type, amount, category, description, date, firebase_uid } = req.body;
 
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Firebase UID is required" });
+    }
+
+    // ✅ Fetch the user ID
+    const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("firebase_uid", firebase_uid)
+        .maybeSingle();
+
+    if (userError || !userData) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const user_id = userData.id;
+
+    // ✅ Ensure transaction belongs to the user
+    const { data: existingTransaction } = await supabase
+        .from("transactions")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (!existingTransaction || existingTransaction.user_id !== user_id) {
+        return res.status(403).json({ error: "Unauthorized to update this transaction" });
+    }
+
+    // ✅ Update transaction
     const { data, error } = await supabase
         .from("transactions")
         .update({ type, amount, category, description, date })
         .eq("id", id)
-        .select(); // ✅ Ensures updated data is returned
+        .select();
 
     if (error) {
         return res.status(500).json({ error: error.message });
@@ -115,10 +194,40 @@ router.put("/:id", async (req, res) => {
     res.json({ message: "Transaction updated successfully", transaction: data[0] });
 });
 
-// 🔴 DELETE Transaction
+// 🔴 DELETE Transaction (Only if it belongs to the user)
 router.delete("/:id", async (req, res) => {
     const { id } = req.params;
+    const { firebase_uid } = req.body;
 
+    if (!firebase_uid) {
+        return res.status(400).json({ error: "Firebase UID is required" });
+    }
+
+    // ✅ Fetch the user ID
+    const { data: userData, error: userError } = await supabase
+        .from("users")
+        .select("id")
+        .eq("firebase_uid", firebase_uid)
+        .maybeSingle();
+
+    if (userError || !userData) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    const user_id = userData.id;
+
+    // ✅ Ensure transaction belongs to the user
+    const { data: existingTransaction } = await supabase
+        .from("transactions")
+        .select("user_id")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (!existingTransaction || existingTransaction.user_id !== user_id) {
+        return res.status(403).json({ error: "Unauthorized to delete this transaction" });
+    }
+
+    // ✅ Delete transaction
     const { error } = await supabase.from("transactions").delete().eq("id", id);
 
     if (error) {
@@ -127,6 +236,4 @@ router.delete("/:id", async (req, res) => {
 
     res.json({ message: "Transaction deleted successfully" });
 });
-
-
 module.exports = router;

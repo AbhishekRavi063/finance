@@ -1,33 +1,37 @@
-import { useState, useEffect, Fragment } from "react";
-import { Dialog, Transition } from "@headlessui/react";
-import { FaPlus, FaSearch } from "react-icons/fa";
+import { useState, useEffect } from "react";
+import { FaPlus, FaSearch, FaTrash, FaEdit, FaEye } from "react-icons/fa";
 import Layout from "@/app/layout";
-import { supabase } from "../../lib/supabaseClient";
-import { auth } from "../../lib/firebase"; // Adjust the path as needed
+import { auth } from "../../lib/firebase";
+import TransactionForm from "../components/TransactionForm";
+import { Dialog, Transition } from "@headlessui/react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Transactions() {
   const [isOpen, setIsOpen] = useState(false);
+  const [viewModalOpen, setViewModalOpen] = useState(false);
   const [transactions, setTransactions] = useState([]);
-  const [formData, setFormData] = useState({
-    type: "expense",
-    amount: "",
-    category: "",
-    description: "",
-    date: "",
-  });
+  const [filteredTransactions, setFilteredTransactions] = useState([]); // Filtered results
+  const [searchQuery, setSearchQuery] = useState(""); // Search state
+  const [editingTransaction, setEditingTransaction] = useState(null);
+  const [viewTransaction, setViewTransaction] = useState(null);
 
+  // Fetch user transactions when authenticated
   useEffect(() => {
-    fetchTransactions();
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) fetchTransactions(user.uid);
+    });
+    return () => unsubscribe();
   }, []);
 
-  async function fetchTransactions() {
+  async function fetchTransactions(userId) {
+    if (!userId) return;
     try {
-      const response = await fetch(`${API_URL}/api/transactions`);
+      const response = await fetch(`${API_URL}/api/transactions?firebase_uid=${userId}`);
       const data = await response.json();
       if (response.ok) {
         setTransactions(data);
+        setFilteredTransactions(data); // Initialize filtered transactions
       } else {
         console.error("Error fetching transactions:", data.error);
       }
@@ -36,62 +40,64 @@ export default function Transactions() {
     }
   }
 
-  function closeModal() {
-    setIsOpen(false);
-  }
-
-  function openModal() {
-    setIsOpen(true);
-  }
-  console.log("Form Data before submit:", formData);
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!formData.category || !formData.amount || !formData.date || !formData.description) {
-        console.error("All fields are required!");
-        return;
-    }
-
+  async function deleteTransaction(transactionId) {
     const user = auth.currentUser;
     if (!user) {
-        console.error("User not authenticated");
-        return;
+      console.error("User is not authenticated.");
+      return;
     }
-
-    console.log("Sending Firebase UID:", user.uid);
-
     try {
-        const response = await fetch(`${API_URL}/api/transactions`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                firebase_uid: user.uid, // ✅ Send firebase UID
-                type: formData.type,
-                category: formData.category,
-                amount: parseFloat(formData.amount), // ✅ Ensure number format
-                date: new Date(formData.date).toISOString(), // ✅ Ensure correct date format
-                description: formData.description,
-            }),
-        });
+      const response = await fetch(`${API_URL}/api/transactions/${transactionId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ firebase_uid: user.uid }), // Pass the firebase_uid
+      });
 
-        const result = await response.json();
-        if (!response.ok) {
-            console.error("Error:", result.error);
-            return;
-        }
-
-        console.log("Transaction added successfully:", result.transaction);
-        setFormData({ type: "expense", category: "", amount: "", date: "", description: "" });
-        fetchTransactions();
-        closeModal();
+      if (response.ok) {
+        await fetchTransactions(user.uid); // Refresh the transactions after deletion
+      } else {
+        const data = await response.json();
+        console.error("Error deleting transaction:", data.error);
+      }
     } catch (error) {
-        console.error("Network error:", error);
+      console.error("Network error:", error);
     }
-};
+  }
+
+  function handleSearch(e) {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+    setFilteredTransactions(
+      transactions.filter(
+        (txn) =>
+          txn.description.toLowerCase().includes(query) ||
+          txn.category.toLowerCase().includes(query) ||
+          txn.amount.toString().includes(query)
+      )
+    );
+  }
+
+  function openModal(transaction = null) {
+    setEditingTransaction(transaction);
+    setIsOpen(true);
+  }
+
+  function closeModal() {
+    setIsOpen(false);
+    setEditingTransaction(null);
+  }
+
+  function openViewModal(transaction) {
+    setViewTransaction(transaction);
+    setViewModalOpen(true);
+  }
+
+  function closeViewModal() {
+    setViewModalOpen(false);
+    setViewTransaction(null);
+  }
 
   return (
     <Layout>
@@ -104,12 +110,14 @@ export default function Transactions() {
             <input
               type="text"
               placeholder="Search transactions..."
+              value={searchQuery}
+              onChange={handleSearch}
               className="w-full p-2 pl-8 rounded-md bg-gray-700 text-white focus:outline-none"
             />
             <FaSearch className="absolute top-3 left-2 text-gray-400" />
           </div>
           <button
-            onClick={openModal}
+            onClick={() => openModal()}
             className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
           >
             <FaPlus className="mr-2" /> Add Transaction
@@ -117,114 +125,84 @@ export default function Transactions() {
         </div>
 
         <div className="mt-6 bg-gray-800 p-6 rounded-lg">
-          {transactions.length === 0 ? (
+          {filteredTransactions.length === 0 ? (
             <div className="text-center">
               <p className="text-gray-400">No transactions found</p>
               <button
-                onClick={openModal}
+                onClick={() => openModal()}
                 className="mt-4 bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700"
               >
                 + Add Your First Transaction
               </button>
             </div>
           ) : (
-            <ul className="space-y-3">
-              {transactions.map((txn) => (
-                <li
-                  key={txn.id}
-                  className="bg-gray-700 p-3 rounded-md text-white flex justify-between"
-                >
-                  <span>{txn.description}</span>
-                  <span
-                    className={txn.type === "expense" ? "text-red-500" : "text-green-500"}
-                  >
-                    ${txn.amount}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-white border-collapse">
+                <thead>
+                  <tr className="bg-gray-700 text-gray-300">
+                    <th className="py-2 px-4 text-left">Description</th>
+                    <th className="py-2 px-4 text-left">Amount</th>
+                    <th className="py-2 px-4 text-left">Category</th>
+                    <th className="py-2 px-4 text-left">Date</th>
+                    <th className="py-2 px-4 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTransactions.map((txn) => (
+                    <tr key={txn.id} className="border-b border-gray-700">
+                      <td className="py-2 px-4">{txn.description}</td>
+                      <td className={`py-2 px-4 ${txn.type === "expense" ? "text-red-500" : "text-green-500"}`}>
+                        ${txn.amount}
+                      </td>
+                      <td className="py-2 px-4">{txn.category}</td>
+                      <td className="py-2 px-4">{txn.date}</td>
+                      <td className="py-2 px-4 flex space-x-3 justify-center">
+                        <button onClick={() => openViewModal(txn)} className="text-blue-400 hover:text-blue-300">
+                          <FaEye />
+                        </button>
+                        <button onClick={() => openModal(txn)} className="text-yellow-400 hover:text-yellow-300">
+                          <FaEdit />
+                        </button>
+                        <button onClick={() => deleteTransaction(txn.id)} className="text-red-400 hover:text-red-300">
+                          <FaTrash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        <Transition appear show={isOpen} as={Fragment}>
-          <Dialog as="div" className="relative z-10" onClose={closeModal}>
-            <div className="fixed inset-0 bg-black bg-opacity-50" />
-            <div className="fixed inset-0 flex items-center justify-center p-4">
-              <Dialog.Panel className="w-full max-w-md bg-gray-900 p-6 rounded-lg">
-                <Dialog.Title className="text-lg font-semibold text-white">
-                  Add New Transaction
-                </Dialog.Title>
-                <p className="text-gray-400 text-sm">Enter transaction details below</p>
+        <TransactionForm
+          isOpen={isOpen}
+          closeModal={closeModal}
+          fetchTransactions={fetchTransactions}
+          transaction={editingTransaction}
+        />
 
-                <form onSubmit={handleSubmit}>
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold">Transaction Type</label>
-                    <select
-                      className="w-full p-2 rounded-md bg-gray-700 text-white"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value.toLowerCase() })}
-                    >
-                      <option value="expense">Expense</option>
-                      <option value="income">Income</option>
-                    </select>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold">Amount</label>
-                    <input
-                      type="number"
-                      placeholder="$ 0.00"
-                      className="w-full p-2 rounded-md bg-gray-700 text-white"
-                      value={formData.amount}
-                      onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold">Category</label>
-                    <select
-                      className="w-full p-2 rounded-md bg-gray-700 text-white"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    >
-                      <option value="">Select category</option>
-                      <option value="Food">Food</option>
-                      <option value="Rent">Rent</option>
-                      <option value="Salary">Salary</option>
-                    </select>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold">Description</label>
-                    <input
-                      type="text"
-                      placeholder="Enter description"
-                      className="w-full p-2 rounded-md bg-gray-700 text-white"
-                      value={formData.description}
-                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="text-sm font-semibold">Date</label>
-                    <input
-                      type="date"
-                      className="w-full p-2 rounded-md bg-gray-700 text-white"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="submit"
-                      className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </form>
-              </Dialog.Panel>
+        {/* View Transaction Modal */}
+        <Transition appear show={viewModalOpen} as="div">
+          <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={viewModalOpen} onClose={closeViewModal}>
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+              <Dialog.Title className="text-lg font-bold text-white mb-4">
+                Transaction Details
+              </Dialog.Title>
+              {viewTransaction && (
+                <div className="text-gray-300 space-y-2">
+                  <p><strong>Description:</strong> {viewTransaction.description}</p>
+                  <p><strong>Amount:</strong> ${viewTransaction.amount}</p>
+                  <p><strong>Type:</strong> {viewTransaction.type}</p>
+                  <p><strong>Category:</strong> {viewTransaction.category}</p>
+                  <p><strong>Date:</strong> {viewTransaction.date}</p>
+                </div>
+              )}
+              <div className="mt-4 text-right">
+                <button onClick={closeViewModal} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                  Close
+                </button>
+              </div>
             </div>
           </Dialog>
         </Transition>
