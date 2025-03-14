@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "next/router";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
 import { fetchNetWorth } from "../../lib/queries";
@@ -8,6 +7,8 @@ import DashboardHeader from "../components/DashboardHeader";
 import SummaryCard from "../components/SummaryCard";
 import { FaArrowUp, FaArrowDown, FaBalanceScale } from "react-icons/fa";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { useRouter } from 'next/router'; // Import useRouter
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 

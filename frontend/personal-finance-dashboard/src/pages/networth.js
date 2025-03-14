@@ -1,44 +1,73 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
-import { supabase } from "../../lib/supabaseClient"; // Make sure to import your Supabase client
+import { supabase } from "../../lib/supabaseClient"; // Ensure you have Supabase client
+import { useRouter } from "next/router"; // Import useRouter
+import { auth } from "../../lib/firebase";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NetWorth() {
-  const [assets, setAssets] = useState({
-    bank: 100000,
-    investments: 250000,
-    property: 80500,
-  });
-
-  const [liabilities, setLiabilities] = useState({
-    loans: 200000,
-    creditCard: 105150,
-  });
-
-  const [isClient, setIsClient] = useState(false);
+  const [assets, setAssets] = useState([]);
+  const [liabilities, setLiabilities] = useState([]);
   const [newAsset, setNewAsset] = useState({ name: "", value: 0 });
-  const [newLiability, setNewLiability] = useState({ name: "", value: 0 });
-
+  const [newLiability, setNewLiability] = useState({ name: "", amount: 0 });
+  const [user, setUser] = useState(null);  // Store user information
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showLiabilityModal, setShowLiabilityModal] = useState(false);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const router = useRouter();
 
-  // Calculate totals only on the client-side
-  const totalAssets = Object.values(assets).reduce((acc, val) => acc + val, 0);
-  const totalLiabilities = Object.values(liabilities).reduce(
-    (acc, val) => acc + val,
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        setUser(user);
+        console.log("🔥 Logged-in User UID:", user.uid); // Debugging
+  
+        // Directly call the API to fetch assets and liabilities for the logged-in user
+        try {
+          // Fetch assets
+          const assetsResponse = await fetch(`${API_URL}/api/assets?firebase_uid=${user.uid}`);
+          const assetsData = await assetsResponse.json();
+          if (assetsResponse.ok) {
+            setAssets(assetsData);
+            console.log("💰 All Assets:", assetsData); // ✅ Console log all assets
+          } else {
+            console.error("Error fetching assets:", assetsData.error);
+          }
+  
+          // Fetch liabilities
+          const liabilitiesResponse = await fetch(`${API_URL}/api/liabilities?firebase_uid=${user.uid}`);
+          const liabilitiesData = await liabilitiesResponse.json();
+          if (liabilitiesResponse.ok) {
+            setLiabilities(liabilitiesData);
+            console.log("💸 All Liabilities:", liabilitiesData); // ✅ Console log all liabilities
+          } else {
+            console.error("Error fetching liabilities:", liabilitiesData.error);
+          }
+  
+        } catch (error) {
+          console.error("❌ Error fetching data:", error);
+        }
+      } else {
+        router.push("/");
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [router]);
+
+  // Calculate totals
+  const totalAssets = assets.reduce((acc, asset) => acc + (asset.value || 0), 0);
+  const totalLiabilities = liabilities.reduce(
+    (acc, liability) => acc + (liability.amount || 0),
     0
   );
   const netWorth = totalAssets - totalLiabilities;
 
   const handleAddAsset = async () => {
     if (newAsset.name && newAsset.value > 0) {
-      const updatedAssets = { ...assets, [newAsset.name]: newAsset.value };
+      const updatedAssets = [...assets, { ...newAsset, user_id: "current_user_id" }];
       setAssets(updatedAssets);
       // Add asset to Supabase
       await supabase
@@ -50,21 +79,20 @@ export default function NetWorth() {
   };
 
   const handleAddLiability = async () => {
-    if (newLiability.name && newLiability.value > 0) {
-      const updatedLiabilities = { ...liabilities, [newLiability.name]: newLiability.value };
+    if (newLiability.name && newLiability.amount > 0) {
+      const updatedLiabilities = [
+        ...liabilities,
+        { ...newLiability, user_id: "current_user_id" },
+      ];
       setLiabilities(updatedLiabilities);
       // Add liability to Supabase
       await supabase
         .from("liabilities")
-        .upsert([{ user_id: "current_user_id", name: newLiability.name, value: newLiability.value }]); // Replace with actual user_id
-      setNewLiability({ name: "", value: 0 });
+        .upsert([{ user_id: "current_user_id", name: newLiability.name, amount: newLiability.amount }]); // Replace with actual user_id
+      setNewLiability({ name: "", amount: 0 });
       setShowLiabilityModal(false); // Close modal
     }
   };
-
-  if (!isClient) {
-    return null;
-  }
 
   return (
     <div className="flex">
@@ -125,19 +153,23 @@ export default function NetWorth() {
               </thead>
               <tbody>
                 {/* Assets Breakdown */}
-                {Object.entries(assets).map(([key, value]) => (
-                  <tr key={key} className="bg-gray-100 border-b">
+                {assets.map((asset) => (
+                  <tr key={asset.id} className="bg-gray-100 border-b">
                     <td className="px-4 py-2 text-sm text-gray-700">Asset</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{key}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">${value.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{asset.name}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">
+                      {asset.value && !isNaN(asset.value) ? `$${asset.value.toLocaleString()}` : "N/A"}
+                    </td>
                   </tr>
                 ))}
                 {/* Liabilities Breakdown */}
-                {Object.entries(liabilities).map(([key, value]) => (
-                  <tr key={key} className="bg-gray-200 border-b">
+                {liabilities.map((liability) => (
+                  <tr key={liability.id} className="bg-gray-200 border-b">
                     <td className="px-4 py-2 text-sm text-gray-700">Liability</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{key}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">${value.toLocaleString()}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{liability.name}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700">
+                      {liability.amount && !isNaN(liability.amount) ? `$${liability.amount.toLocaleString()}` : "N/A"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -200,10 +232,10 @@ export default function NetWorth() {
               />
               <input
                 type="number"
-                placeholder="Liability Value"
-                value={newLiability.value}
+                placeholder="Liability Amount"
+                value={newLiability.amount}
                 onChange={(e) =>
-                  setNewLiability({ ...newLiability, value: parseFloat(e.target.value) })
+                  setNewLiability({ ...newLiability, amount: parseFloat(e.target.value) })
                 }
                 className="mt-2 p-2 w-full border border-gray-600 rounded-md bg-gray-700 text-white"
               />
