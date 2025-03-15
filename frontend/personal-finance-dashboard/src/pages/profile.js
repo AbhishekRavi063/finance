@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
 import { auth } from "../../lib/firebase";
-import { updateProfile, updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
+import {
+  updateProfile,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+} from "firebase/auth";
 import { useRouter } from "next/router";
 import Sidebar from "@/components/Sidebar";
+import Snackbar from "@mui/material/Snackbar";  // Material UI Snackbar for pop-up
+import MuiAlert from "@mui/material/Alert";  // Material UI Alert for success message
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -11,9 +18,8 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [currentPassword, setCurrentPassword] = useState(""); // Added to handle reauthentication
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSnackbarOpen, setIsSnackbarOpen] = useState(false); // Snackbar state for success message
   const [modalMessage, setModalMessage] = useState("");
-
   const router = useRouter();
 
   useEffect(() => {
@@ -53,19 +59,24 @@ export default function Profile() {
 
             // Now update the password
             await updatePassword(user, newPassword);
-            alert("Password updated successfully!");
+            setModalMessage("Password updated successfully!");
           } catch (err) {
             setModalMessage("Reauthentication failed. Please try again.");
-            setIsModalOpen(true);
+            setIsSnackbarOpen(true);
             return;
           }
         } else if (newPassword && !isEmailProvider) {
           setModalMessage("Password update is only available for email/password users.");
-          setIsModalOpen(true);
+          setIsSnackbarOpen(true);
           return;
         }
 
-        alert("Profile updated successfully!");
+        setModalMessage("Profile updated successfully!");
+        setIsSnackbarOpen(true);
+        setTimeout(() => {
+          router.reload(); // Refresh the page after successful update
+        }, 2000); // Wait for Snackbar to show before refreshing
+
       } catch (err) {
         setError(err.message);
       }
@@ -141,7 +152,7 @@ export default function Profile() {
             <div className="mb-4">
               <button
                 type="submit"
-                className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                className="w-full py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition cursor-pointer"
               >
                 Update Profile
               </button>
@@ -150,20 +161,20 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Modal Popup */}
-      {isModalOpen && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black bg-opacity-50">
-          <div className="bg-white p-6 rounded-lg w-96 max-w-full text-center">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">{modalMessage}</h2>
-            <button
-              onClick={() => setIsModalOpen(false)}
-              className="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Success Snackbar for Profile Update */}
+      <Snackbar
+        open={isSnackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setIsSnackbarOpen(false)}
+      >
+        <MuiAlert
+          onClose={() => setIsSnackbarOpen(false)}
+          severity="success"
+          sx={{ width: "100%" }}
+        >
+          {modalMessage}
+        </MuiAlert>
+      </Snackbar>
     </div>
   );
 }
