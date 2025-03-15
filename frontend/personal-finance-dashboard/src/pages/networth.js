@@ -4,19 +4,32 @@ import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
 import { Dialog, Transition } from "@headlessui/react";
 import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
-import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi"; // Import functions
+import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi"; 
+import { useNetWorthStore } from "../app/store/netWorthStore"; // Import Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NetWorth() {
-  const [assets, setAssets] = useState([]);
-  const [liabilities, setLiabilities] = useState([]);
-  const [user, setUser] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [itemType, setItemType] = useState(""); // 'asset' or 'liability'
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State to manage delete confirmation modal
-  const [itemToDelete, setItemToDelete] = useState(null); // To store item to be deleted
+  const {
+    assets,
+    liabilities,
+    user,
+    modalOpen,
+    editingItem,
+    itemType,
+    isDeleteModalOpen,
+    itemToDelete,
+    setUser,
+    setAssets,
+    setLiabilities,
+    setModalOpen,
+    setEditingItem,
+    setItemType,
+    setDeleteModalOpen,
+    setItemToDelete,
+  } = useNetWorthStore();
+
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -27,7 +40,7 @@ export default function NetWorth() {
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [setUser, setAssets, setLiabilities]);
 
   async function handleDelete() {
     if (itemToDelete) {
@@ -37,29 +50,43 @@ export default function NetWorth() {
           ? setAssets(await fetchAssets(user.uid))
           : setLiabilities(await fetchLiabilities(user.uid));
       }
-      setIsDeleteModalOpen(false);
-      setItemToDelete(null); // Reset item to delete after confirmation
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
     }
   }
 
   function openDeleteModal(item) {
     setItemToDelete(item);
-    setIsDeleteModalOpen(true);
+    setDeleteModalOpen(true);
   }
 
   function closeDeleteModal() {
-    setIsDeleteModalOpen(false);
+    setDeleteModalOpen(false);
     setItemToDelete(null);
   }
 
+  // Save item logic with validation
   async function handleSave() {
-    if (user) {
-      const result = await saveItem(user.uid, editingItem, itemType);
-      if (result) {
-        closeModal();
-        itemType === "asset"
-          ? setAssets(await fetchAssets(user.uid))
-          : setLiabilities(await fetchLiabilities(user.uid));
+    const newErrors = {};
+
+    if (!editingItem?.description) {
+      newErrors.description = "Description is required";
+    }
+    if (!editingItem?.[itemType === "asset" ? "value" : "amount"]) {
+      newErrors.amount = "Amount is required";
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      if (user) {
+        const result = await saveItem(user.uid, editingItem, itemType);
+        if (result) {
+          closeModal();
+          itemType === "asset"
+            ? setAssets(await fetchAssets(user.uid))
+            : setLiabilities(await fetchLiabilities(user.uid));
+        }
       }
     }
   }
@@ -86,7 +113,7 @@ export default function NetWorth() {
         <h1 className="text-3xl font-bold">Net Worth</h1>
         <p className="text-gray-400">Track your assets and liabilities</p>
 
-        <div className="grid grid-cols-3 gap-6 mt-6">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           <StatCard
             title="Total Assets"
             amount={`$${totalAssets.toLocaleString()}`}
@@ -105,7 +132,7 @@ export default function NetWorth() {
         </div>
 
         <div className="mt-6 p-6 bg-gray-800 rounded-lg shadow-md">
-          <div className="flex justify-center gap-4 mt-4">
+          <div className="flex justify-center gap-4 mt-4 flex-wrap">
             <button
               onClick={() => openModal("asset")}
               className="bg-green-600 px-4 py-2 rounded-md cursor-pointer hover:bg-green-700 flex items-center gap-2"
@@ -120,7 +147,7 @@ export default function NetWorth() {
             </button>
           </div>
           
-          <h3 className="text-gray-400 font-semibold text-lg">Breakdown</h3>
+          <h3 className="text-gray-400 font-semibold text-lg mt-6">Breakdown</h3>
 
           <div className="overflow-x-auto mt-4">
             <table className="w-full border-collapse border border-gray-700">
@@ -173,7 +200,7 @@ export default function NetWorth() {
             open={modalOpen}
             onClose={closeModal}
           >
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
               <Dialog.Title className="text-lg font-bold text-white mb-4">
                 {editingItem?.id ? "Edit" : "Add"} {itemType}
               </Dialog.Title>
@@ -190,13 +217,14 @@ export default function NetWorth() {
                 }
                 className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
               />
+              {errors.description && (
+                <p className="text-red-500 text-sm">{errors.description}</p>
+              )}
 
               <input
                 type="number"
                 placeholder="Amount"
-                value={
-                  editingItem?.[itemType === "asset" ? "value" : "amount"] ?? ""
-                }
+                value={editingItem?.[itemType === "asset" ? "value" : "amount"] ?? ""}
                 onChange={(e) => {
                   const newValue =
                     e.target.value === "" ? "" : Number(e.target.value);
@@ -207,18 +235,21 @@ export default function NetWorth() {
                 }}
                 className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
               />
+              {errors.amount && (
+                <p className="text-red-500 text-sm">{errors.amount}</p>
+              )}
 
               {/* Button Container */}
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
                 >
                   Save
                 </button>
@@ -234,20 +265,20 @@ export default function NetWorth() {
             open={isDeleteModalOpen}
             onClose={closeDeleteModal}
           >
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
               <Dialog.Title className="text-lg font-bold text-white mb-4">
                 Are you sure you want to delete this item?
               </Dialog.Title>
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
                 >
                   Delete
                 </button>

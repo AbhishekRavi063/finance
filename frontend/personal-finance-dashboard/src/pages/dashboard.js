@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { auth } from "../../lib/firebase";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
@@ -7,18 +7,17 @@ import { FaArrowUp, FaArrowDown, FaBalanceScale } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
 import { PieChart, Pie, Cell } from "recharts";
 import { useRouter } from 'next/router';
-import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi"; 
+import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi";
 import { fetchTransactions } from "../app/utils/transactionaspi";
+import useStore from '../app/store/useStore';  // Import the Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [assets, setAssets] = useState([]);
-  const [liabilities, setLiabilities] = useState([]);
-  const [transactions, setTransactions] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState("All");
-  const [selectedCategory, setSelectedCategory] = useState("All");
+  const {
+    user, assets, liabilities, transactions, selectedMonth, selectedCategory,
+    setUser, setAssets, setLiabilities, setTransactions, setSelectedMonth, setSelectedCategory
+  } = useStore();  // Using Zustand state and actions
 
   const router = useRouter();
 
@@ -45,7 +44,7 @@ export default function Dashboard() {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, setUser, setAssets, setLiabilities, setTransactions]);
 
   const months = ["All", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const categories = ["All", ...new Set(transactions.map((t) => t.category))];
@@ -110,15 +109,15 @@ export default function Dashboard() {
 
         <DashboardHeader />
 
-        <div className="flex space-x-4 mt-4">
+        <div className="flex flex-wrap md:flex-nowrap space-x-4 mt-4">
           {/* Month Filter */}
-          <div className="flex flex-col">
-            <label htmlFor="month" className="text-sm text-gray-300 ">
+          <div className="flex flex-col w-full md:w-1/3">
+            <label htmlFor="month" className="text-sm text-gray-300">
               Filter by Month
             </label>
             <select
               id="month"
-              className="p-2 border rounded bg-gray-800 text-white mt-4"
+              className="p-2 border rounded bg-gray-800 text-white mt-4 cursor-pointer"
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
             >
@@ -131,13 +130,13 @@ export default function Dashboard() {
           </div>
 
           {/* Category Filter */}
-          <div className="flex flex-col">
-            <label htmlFor="category" className="text-sm text-gray-300 ">
+          <div className="flex flex-col w-full md:w-1/3">
+            <label htmlFor="category" className="text-sm text-gray-300">
               Filter by Category
             </label>
             <select
               id="category"
-              className="p-2 border rounded bg-gray-800 text-white mt-4"
+              className="p-2 border rounded bg-gray-800 text-white mt-4 cursor-pointer"
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -150,7 +149,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6 mt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <SummaryCard
             title="Total Income"
             value={`₹${totalIncome}`}
@@ -176,7 +175,7 @@ export default function Dashboard() {
 
         {/* Income vs Expenses (Last 6 Months) */}
         <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-15">
+          <h2 className="text-xl font-semibold mb-6">
             Income vs. Expenses (Last 6 Months)
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -194,10 +193,10 @@ export default function Dashboard() {
 
         {/* Expense and Income Breakdown by Category */}
         <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-15">
+          <h2 className="text-xl font-semibold mb-6">
             Expense and Income Breakdown by Category
           </h2>
-          <div className="flex justify-between space-x-4">
+          <div className="flex flex-wrap md:flex-nowrap justify-between space-x-4">
             {/* Expense Breakdown */}
             <div className="flex-1">
               <h3 className="text-lg font-semibold mb-2">Expense Breakdown</h3>

@@ -17,6 +17,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
   const [newCategory, setNewCategory] = useState("");
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     if (transaction) {
@@ -35,7 +36,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
   function handleCategoryChange(category) {
     if (category === "add_new") {
       setIsNewCategoryModalOpen(true);
-    } else {
+    } else if (category !== formData.category) {
       setFormData({ ...formData, category });
     }
     setIsDropdownOpen(false);
@@ -43,11 +44,21 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
   function handleNewCategorySubmit() {
     if (newCategory.trim() !== "") {
-      setCategories([...categories, newCategory]);
+      setCategories((prevCategories) => [...prevCategories, newCategory]);
       setFormData({ ...formData, category: newCategory });
     }
     setNewCategory("");
     setIsNewCategoryModalOpen(false);
+    setIsDropdownOpen(false);
+  }
+
+  function validateForm() {
+    const errors = {};
+    if (!formData.amount) errors.amount = "Amount is required";
+    if (!formData.category) errors.category = "Category is required";
+    if (!formData.description) errors.description = "Description is required";
+    if (!formData.date) errors.date = "Date is required";
+    return errors;
   }
 
   async function handleSubmit(e) {
@@ -56,6 +67,12 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
     const user = auth.currentUser;
     if (!user) {
       console.error("User not authenticated");
+      return;
+    }
+
+    const validationErrors = validateForm();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
       return;
     }
 
@@ -83,7 +100,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
       if (response.ok) {
         closeModal();
         fetchTransactions(user.uid);
-        resetForm(); // Reset the form after submission
+        resetForm();
       } else {
         console.error("Error adding/updating transaction:", data);
       }
@@ -92,7 +109,6 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
     }
   }
 
-  // Reset form state
   function resetForm() {
     setFormData({
       type: "expense",
@@ -101,9 +117,10 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
       description: "",
       date: "",
     });
-    setNewCategory(""); // Reset new category input
-    setIsNewCategoryModalOpen(false); // Close the new category modal
-    setIsDropdownOpen(false); // Close the category dropdown
+    setNewCategory("");
+    setIsNewCategoryModalOpen(false);
+    setIsDropdownOpen(false);
+    setErrors({});
   }
 
   return (
@@ -133,6 +150,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
               />
+              {errors.amount && <p className="text-red-500 text-sm">{errors.amount}</p>}
             </div>
             <div>
               <label className="block text-gray-400">Category</label>
@@ -140,7 +158,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                 <button
                   type="button"
                   className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none text-left"
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onClick={() => setIsDropdownOpen((prevState) => !prevState)} 
                 >
                   {formData.category || "Select category"}
                 </button>
@@ -164,6 +182,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                   </div>
                 )}
               </div>
+              {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
             </div>
             <div>
               <label className="block text-gray-400">Description</label>
@@ -173,6 +192,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
               />
+              {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
             </div>
             <div>
               <label className="block text-gray-400">Date</label>
@@ -182,18 +202,19 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
               />
+              {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
             </div>
             <div className="flex justify-between">
               <button
                 type="button"
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
               >
                 {transaction ? "Update" : "Save"}
               </button>
@@ -202,7 +223,6 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
         </div>
       </Dialog>
 
-      {/* New Category Modal */}
       <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
         <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isNewCategoryModalOpen} onClose={() => setIsNewCategoryModalOpen(false)}>
           <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">

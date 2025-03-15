@@ -4,22 +4,29 @@ import Layout from "@/app/layout";
 import { auth } from "../../lib/firebase";
 import TransactionForm from "../components/TransactionForm";
 import { Dialog, Transition } from "@headlessui/react";
+import useTransactionStore from "../app/store/useTransactionStore";
 import { fetchTransactions, deleteTransaction } from "../app/utils/transactionaspi"; // Import the functions
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 export default function Transactions() {
+  const {
+    transactions,
+    setTransactions,
+    setFilteredTransactions,
+    setSearchQuery,
+    filteredTransactions,
+  } = useTransactionStore();
+
   const [isOpen, setIsOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [transactions, setTransactions] = useState([]);
-  const [filteredTransactions, setFilteredTransactions] = useState([]); // Filtered results
-  const [searchQuery, setSearchQuery] = useState(""); // Search state
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [viewTransaction, setViewTransaction] = useState(null);
 
   // Delete confirmation modal states
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
+
+  const [searchQuery, setSearchQueryState] = useState(''); // Use local state for the search query
 
   // Fetch user transactions when authenticated
   useEffect(() => {
@@ -46,16 +53,9 @@ export default function Transactions() {
   }
 
   function handleSearch(e) {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
-    setFilteredTransactions(
-      transactions.filter(
-        (txn) =>
-          txn.description.toLowerCase().includes(query) ||
-          txn.category.toLowerCase().includes(query) ||
-          txn.amount.toString().includes(query)
-      )
-    );
+    const query = e.target.value;
+    setSearchQueryState(query);
+    setSearchQuery(query); // Assuming your store's setSearchQuery function updates the filtered transactions
   }
 
   function openModal(transaction = null) {
@@ -90,16 +90,16 @@ export default function Transactions() {
 
   return (
     <Layout>
-      <div className="bg-darkCard p-6 rounded-lg border border-darkBorder bg-gray-900 ">
-        <h1 className="text-2xl  font-bold text-amber-50">Transactions</h1>
+      <div className="bg-darkCard p-6 rounded-lg border border-darkBorder bg-gray-900">
+        <h1 className="text-2xl font-bold text-amber-50">Transactions</h1>
         <p className="text-gray-400">Manage your income and expenses</p>
 
-        <div className="flex items-center justify-between mt-4">
-          <div className="relative w-1/3">
+        <div className="flex items-center justify-between mt-4 flex-wrap gap-4">
+          <div className="relative w-full sm:w-1/2 lg:w-1/3">
             <input
               type="text"
               placeholder="Search transactions..."
-              value={searchQuery}
+              value={searchQuery} // Bind value to searchQuery
               onChange={handleSearch}
               className="w-full p-2 pl-8 rounded-md bg-gray-700 text-white focus:outline-none"
             />
@@ -119,7 +119,7 @@ export default function Transactions() {
               <p className="text-gray-400">No transactions found</p>
               <button
                 onClick={() => openModal()}
-                className="mt-4 bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700"
+                className="mt-4 bg-gray-600 px-4 py-2 rounded-md hover:bg-gray-700 cursor-pointer"
               >
                 + Add Your First Transaction
               </button>
@@ -188,7 +188,7 @@ export default function Transactions() {
                 </div>
               )}
               <div className="mt-4 text-right">
-                <button onClick={closeViewModal} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                <button onClick={closeViewModal} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer">
                   Close
                 </button>
               </div>
@@ -198,38 +198,27 @@ export default function Transactions() {
 
         {/* Delete Confirmation Modal */}
         <Transition appear show={deleteConfirmationOpen} as="div">
-          <Dialog
-            as="div"
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            open={deleteConfirmationOpen}
-            onClose={closeDeleteConfirmationModal}
-          >
+          <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={deleteConfirmationOpen} onClose={closeDeleteConfirmationModal}>
             <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
               <Dialog.Title className="text-lg font-bold text-white mb-4">
-                Are you sure you want to delete this transaction?
+                Confirm Delete
               </Dialog.Title>
-              {transactionToDelete && (
-                <div className="text-gray-300 space-y-2">
-                  <p><strong>Description:</strong> {transactionToDelete.description}</p>
-                  <p><strong>Amount:</strong> ${transactionToDelete.amount}</p>
-                  <p><strong>Category:</strong> {transactionToDelete.category}</p>
-                </div>
-              )}
-              <div className="mt-4 flex justify-between">
-                <button
-                  onClick={closeDeleteConfirmationModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
+              <p className="text-gray-300">Are you sure you want to delete this transaction?</p>
+              <div className="mt-4 text-right">
                 <button
                   onClick={() => {
                     handleDelete(transactionToDelete.id);
                     closeDeleteConfirmationModal();
                   }}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
                 >
-                  Confirm Delete
+                  Yes, Delete
+                </button>
+                <button
+                  onClick={closeDeleteConfirmationModal}
+                  className="ml-3 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
+                >
+                  Cancel
                 </button>
               </div>
             </div>
