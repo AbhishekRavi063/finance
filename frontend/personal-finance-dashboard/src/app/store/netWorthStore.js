@@ -20,5 +20,9 @@ export const useNetWorthStore = create((set) => ({
   setItemType: (type) => set({ itemType: type }),
   setDeleteModalOpen: (isOpen) => set({ isDeleteModalOpen: isOpen }),
   setItemToDelete: (item) => set({ itemToDelete: item }),
-  setSearchQuery: (query) => set({ searchQuery: query })
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  viewModalOpen: false,
+  setViewModalOpen: (open) => set({ viewModalOpen: open }),
+  viewItem: null,
+  setViewItem: (item) => set({ viewItem: item }),
 }));

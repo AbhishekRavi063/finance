@@ -39,10 +39,12 @@ export default function Transactions() {
   }, []);
 
   async function fetchUserTransactions(userId) {
-    const data = await fetchTransactions(userId); // Call the fetch function from API file
-    setTransactions(data);
-    setFilteredTransactions(data); // Initialize filtered transactions
+    const data = await fetchTransactions(userId);
+    const sortedData = data.sort((a,b) => new Date(b.date) - new Date(a.date)); // Sort by date in descending order
+    setTransactions(sortedData);
+    setFilteredTransactions(sortedData); // Initialize filtered transactions with sorted data
   }
+  
 
   async function handleDelete(transactionId) {
     const user = auth.currentUser;
@@ -183,7 +185,11 @@ export default function Transactions() {
                   <tbody>
                     {currentItems.map((txn) => (
                       <tr key={txn.id} className="border-b border-gray-700">
-                        <td className="py-2 px-4">{txn.description}</td>
+                       <td className="p-3 text-left">
+                      {txn.description.length > 30
+                        ? txn.description.slice(0, 15) + "..."
+                        : txn.description}
+                    </td>
                         <td className={`py-2 px-4 ${txn.type === "expense" ? "text-red-500" : "text-green-500"}`}>
                           ₹{txn.amount}
                         </td>
@@ -259,7 +265,7 @@ export default function Transactions() {
                   Transaction Details
                 </Dialog.Title>
                 {viewTransaction && (
-                  <div className="text-gray-300 space-y-2">
+                  <div className="text-gray-300 space-y-5">
                     <p><strong>Description:</strong> {viewTransaction.description}</p>
                     <p><strong>Amount:</strong> ₹{viewTransaction.amount}</p>
                     <p><strong>Type:</strong> {viewTransaction.type}</p>

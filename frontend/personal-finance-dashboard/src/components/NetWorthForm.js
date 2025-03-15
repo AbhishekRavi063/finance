@@ -1,14 +1,19 @@
 import { useState } from "react";
 import { Dialog } from "@headlessui/react"; // Ensure this line is present
 
-
 export default function NetWorthForm({
   editingItem,
   itemType,
   errors,
   handleSave,
   setEditingItem,
+  closeModal, // Assuming this prop is passed in to close the modal
 }) {
+  function handleCancel() {
+    setEditingItem(null); // Reset the form data
+    closeModal(); // Close the modal
+  }
+
   return (
     <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
       <Dialog.Title className="text-lg font-bold text-white mb-4">
@@ -52,7 +57,7 @@ export default function NetWorthForm({
       {/* Button Container */}
       <div className="flex justify-end space-x-2">
         <button
-          onClick={() => setEditingItem(null)} // Close the modal
+          onClick={handleCancel} // Close the modal
           className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
         >
           Cancel

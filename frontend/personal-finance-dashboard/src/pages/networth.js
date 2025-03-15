@@ -3,7 +3,7 @@ import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
 import { Dialog, Transition } from "@headlessui/react";
-import { FaTrash, FaEdit, FaPlus, FaSearch } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus, FaSearch, FaEye } from "react-icons/fa";
 import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi";
 import { useNetWorthStore } from "../app/store/netWorthStore"; // Import Zustand store
 import NetWorthForm from "@/components/NetWorthForm"; // Import the new form component
@@ -29,6 +29,10 @@ export default function NetWorth() {
     setItemType,
     setDeleteModalOpen,
     setItemToDelete,
+    setViewItem, // For view modal
+    viewItem, // To store the item to view
+    viewModalOpen,
+   setViewModalOpen,
   } = useNetWorthStore();
 
   const [errors, setErrors] = useState({});
@@ -106,6 +110,27 @@ export default function NetWorth() {
     setEditingItem(null);
   }
 
+  // View Item Modal functionality
+  function openViewModal(item) {
+    setViewModalOpen(true);
+    setViewItem(item);  // Set the item to display in the view modal
+  }
+
+  function closeViewModal() {
+    setViewModalOpen(false);
+    setViewItem(null);  // Clear the selected item
+  }
+  // The View Modal functions
+function openViewModal(item) {
+  setViewModalOpen(true);
+  setViewItem(item);  // Set the item to display in the view modal
+}
+
+function closeViewModal() {
+  setViewModalOpen(false);
+  setViewItem(null);  // Clear the selected item
+}
+
   const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
@@ -134,17 +159,17 @@ export default function NetWorth() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           <StatCard
             title="Total Assets"
-            amount={`$${totalAssets.toLocaleString()}`}
+            amount={`₹${totalAssets.toLocaleString()}`}
             color="text-green-500"
           />
           <StatCard
             title="Total Liabilities"
-            amount={`$${totalLiabilities.toLocaleString()}`}
+            amount={`₹${totalLiabilities.toLocaleString()}`}
             color="text-red-500"
           />
           <StatCard
             title="Net Worth"
-            amount={`$${netWorth.toLocaleString()}`}
+            amount={`₹${netWorth.toLocaleString()}`}
             color="text-blue-500"
           />
         </div>
@@ -177,7 +202,9 @@ export default function NetWorth() {
             </div>
           </div>
 
-          <h3 className="text-gray-400 font-semibold text-lg mt-6">Breakdown</h3>
+          <h3 className="text-gray-400 font-semibold text-lg mt-6">
+            Breakdown
+          </h3>
 
           <div className="overflow-x-auto mt-4">
             <table className="w-full border-collapse border border-gray-700">
@@ -198,11 +225,30 @@ export default function NetWorth() {
                     <td className="p-3 text-left">
                       {item.type === "asset" ? "Asset" : "Liability"}
                     </td>
-                    <td className="p-3 text-left">{item.description}</td>
                     <td className="p-3 text-left">
-                      ${item.value || item.amount}
+                      {item.description.length > 30
+                        ? item.description.slice(0, 15) + "..."
+                        : item.description}
+                    </td>
+
+                    <td
+                      className={`p-3 text-left ${
+                        item.type === "asset"
+                          ? "text-green-500"
+                          : "text-red-500"
+                      }`}
+                    >
+                      ₹{item.value || item.amount}
                     </td>
                     <td className="p-3 flex justify-center space-x-3">
+
+                    <button
+                        onClick={() => openViewModal(item)}
+                        className="text-blue-400 hover:text-blue-300 cursor-pointer"
+                      >
+                        <FaEye />
+                      </button>
+
                       <button
                         onClick={() => openModal(item.type, item)}
                         className="text-yellow-400 hover:text-yellow-300 cursor-pointer"
@@ -215,6 +261,7 @@ export default function NetWorth() {
                       >
                         <FaTrash />
                       </button>
+                     
                     </td>
                   </tr>
                 ))}
@@ -224,7 +271,9 @@ export default function NetWorth() {
 
           {/* Rows per page dropdown */}
           <div className="flex justify-end mt-4">
-            <label htmlFor="rows-per-page" className="text-white mr-2">Rows per page:</label>
+            <label htmlFor="rows-per-page" className="text-white mr-2">
+              Rows per page:
+            </label>
             <select
               id="rows-per-page"
               value={rowsPerPage}
@@ -250,7 +299,9 @@ export default function NetWorth() {
               Page {currentPage} of {totalPages}
             </div>
             <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              onClick={() =>
+                setCurrentPage(Math.min(totalPages, currentPage + 1))
+              }
               className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
             >
               Next
@@ -258,20 +309,35 @@ export default function NetWorth() {
           </div>
         </div>
 
-        {/* Add/Edit Modal */}
-        <Transition appear show={modalOpen} as="div">
+        {/* View Item Modal */}
+        <Transition appear show={viewModalOpen} as="div">
           <Dialog
             className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-            open={modalOpen}
-            onClose={closeModal}
+            open={viewModalOpen}
+            onClose={closeViewModal}
           >
-            <NetWorthForm
-              editingItem={editingItem}
-              itemType={itemType}
-              errors={errors}
-              handleSave={handleSave}
-              setEditingItem={setEditingItem}
-            />
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
+              <Dialog.Title className="text-lg font-bold text-white mb-4 ">
+                {viewItem ? viewItem.description : "View Item"}
+              </Dialog.Title>
+              <div className="text-white mb-4 space-y-5">
+                <p>
+                  <strong>Type:</strong> {viewItem?.type === "asset" ? "Asset" : "Liability"}
+                </p>
+                <p>
+                  <strong>Description:</strong> {viewItem?.description}
+                </p>
+                <p>
+                  <strong>Value/Amount:</strong> ${viewItem?.value || viewItem?.amount}
+                </p>
+              </div>
+              <button
+                onClick={closeViewModal}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </Dialog>
         </Transition>
 
@@ -289,13 +355,13 @@ export default function NetWorth() {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
                 >
                   Delete
                 </button>
