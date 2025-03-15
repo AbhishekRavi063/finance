@@ -10,6 +10,7 @@ export const useNetWorthStore = create((set) => ({
   itemType: "", // 'asset' or 'liability'
   isDeleteModalOpen: false,
   itemToDelete: null,
+  searchQuery: '',
 
   setUser: (user) => set({ user }),
   setAssets: (assets) => set({ assets }),
@@ -19,4 +20,5 @@ export const useNetWorthStore = create((set) => ({
   setItemType: (type) => set({ itemType: type }),
   setDeleteModalOpen: (isOpen) => set({ isDeleteModalOpen: isOpen }),
   setItemToDelete: (item) => set({ itemToDelete: item }),
+  setSearchQuery: (query) => set({ searchQuery: query })
 }));

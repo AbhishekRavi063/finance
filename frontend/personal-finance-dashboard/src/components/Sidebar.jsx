@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaChartBar, FaWallet, FaBalanceScale, FaFileAlt, FaCog, FaSignOutAlt, FaBars } from "react-icons/fa";
+import { FaChartBar, FaWallet, FaBalanceScale, FaFileAlt, FaUser, FaBars } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
@@ -33,18 +33,18 @@ export default function Sidebar() {
     { name: "Transactions", href: "/transactions", icon: <FaWallet /> },
     { name: "Net Worth", href: "/networth", icon: <FaBalanceScale /> },
     { name: "Reports", href: "/reports", icon: <FaFileAlt /> },
-    { name: "Settings", href: "/settings", icon: <FaCog /> },
+    { name: "Profile", href: "/profile", icon: <FaUser /> },
   ];
 
   return (
     <div className="flex">
       {/* Sidebar */}
       <aside
-        className={`w-64 bg-gray-800 p-6 flex flex-col min-h-screen transition-all duration-300
-          ${sidebarOpen ? "block" : "hidden"} md:block`}
+        className={`w-64 bg-gray-800 p-6 flex flex-col min-h-screen fixed top-0 left-0 z-50 transition-all duration-300
+          ${sidebarOpen ? "block" : "hidden"} md:block md:w-64 md:h-screen md:overflow-hidden`}
       >
         {/* Profile Section */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 mt-15">
           <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center text-lg font-bold">
             {user?.displayName ? user.displayName.charAt(0) : "U"}
           </div>
@@ -65,7 +65,8 @@ export default function Sidebar() {
               className={`flex items-center space-x-3 py-2 px-3 rounded-md transition
                 ${pathname === item.href
                   ? "bg-gray-700 text-white"
-                  : "hover:bg-gray-700 text-gray-300"}`}
+                  : "hover:bg-gray-700 text-gray-300"
+                }`}
             >
               {item.icon} <span>{item.name}</span>
             </Link>
@@ -76,17 +77,26 @@ export default function Sidebar() {
         {user && (
           <button
             onClick={handleLogout}
-            className="mt-6 bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition cursor-pointer"
+            className="mt-10 bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition cursor-pointer"
           >
             Logout
           </button>
         )}
       </aside>
 
+      {/* Main content container */}
+      <div className={`flex-1 transition-all duration-300 ${sidebarOpen ? "ml-64" : "ml-0"} md:ml-64`}>
+        {/* Content goes here */}
+      </div>
+
       {/* Mobile Menu Toggle Button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden p-4 text-white bg-gray-800 hover:bg-gray-700"
+        className={`md:hidden p-4 text-white 
+    ${sidebarOpen
+        ? "bg-gray-600 hover:bg-blue-700"
+        : "bg-blue-800 hover:bg-gray-700"} 
+    fixed top-4 left-4 z-50`}
       >
         <FaBars />
       </button>

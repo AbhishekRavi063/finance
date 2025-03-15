@@ -101,7 +101,7 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="flex min-h-screen bg-gray-900 text-white">
+    <div className="flex min-h-screen bg-gray-900 text-white mt-10">
       <Sidebar />
       <main className="flex-1 p-8">
         <h1 className="text-3xl font-semibold">Dashboard</h1>
@@ -198,7 +198,7 @@ export default function Dashboard() {
           </h2>
           <div className="flex flex-wrap md:flex-nowrap justify-between space-x-4">
             {/* Expense Breakdown */}
-            <div className="flex-1">
+            <div className="w-full md:w-1/2 mb-6">
               <h3 className="text-lg font-semibold mb-2">Expense Breakdown</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
@@ -223,7 +223,7 @@ export default function Dashboard() {
             </div>
 
             {/* Income Breakdown */}
-            <div className="flex-1">
+            <div className="w-full md:w-1/2">
               <h3 className="text-lg font-semibold mb-2">Income Breakdown</h3>
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>

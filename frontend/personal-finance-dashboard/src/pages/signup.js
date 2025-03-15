@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../../lib/supabase'; // ✅ Import Supabase client
+import { supabase } from '../../lib/supabaseClient'; // ✅ Import Supabase client
 import Link from 'next/link';
 
 export default function Signup() {

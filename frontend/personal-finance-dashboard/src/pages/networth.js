@@ -3,9 +3,10 @@ import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
 import { Dialog, Transition } from "@headlessui/react";
-import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
-import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi"; 
+import { FaTrash, FaEdit, FaPlus, FaSearch } from "react-icons/fa";
+import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi";
 import { useNetWorthStore } from "../app/store/netWorthStore"; // Import Zustand store
+import NetWorthForm from "@/components/NetWorthForm"; // Import the new form component
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,6 +20,8 @@ export default function NetWorth() {
     itemType,
     isDeleteModalOpen,
     itemToDelete,
+    searchQuery,
+    setSearchQuery,
     setUser,
     setAssets,
     setLiabilities,
@@ -106,8 +109,16 @@ export default function NetWorth() {
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
 
+  // Filtered assets and liabilities based on the search query
+  const filteredAssets = assets.filter(asset =>
+    asset.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredLiabilities = liabilities.filter(liability =>
+    liability.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="flex">
+    <div className="flex flex-col lg:flex-row mt-10">
       <Sidebar />
       <main className="flex-1 p-6 bg-gray-900 text-white">
         <h1 className="text-3xl font-bold">Net Worth</h1>
@@ -132,21 +143,33 @@ export default function NetWorth() {
         </div>
 
         <div className="mt-6 p-6 bg-gray-800 rounded-lg shadow-md">
-          <div className="flex justify-center gap-4 mt-4 flex-wrap">
-            <button
-              onClick={() => openModal("asset")}
-              className="bg-green-600 px-4 py-2 rounded-md cursor-pointer hover:bg-green-700 flex items-center gap-2"
-            >
-              <FaPlus /> Add Asset
-            </button>
-            <button
-              onClick={() => openModal("liability")}
-              className="bg-red-600 px-4 py-2 cursor-pointer rounded-md hover:bg-red-700 flex items-center gap-2"
-            >
-              <FaPlus /> Add Liability
-            </button>
+          <div className="flex justify-between items-center">
+            <div className="flex justify-center gap-4 mt-4 flex-wrap">
+              <button
+                onClick={() => openModal("asset")}
+                className="bg-green-600 px-4 py-2 rounded-md cursor-pointer hover:bg-green-700 flex items-center gap-2"
+              >
+                <FaPlus /> Add Asset
+              </button>
+              <button
+                onClick={() => openModal("liability")}
+                className="bg-red-600 px-4 py-2 cursor-pointer rounded-md hover:bg-red-700 flex items-center gap-2"
+              >
+                <FaPlus /> Add Liability
+              </button>
+            </div>
+            <div className="flex items-center space-x-2">
+              <FaSearch className="text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search.."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-gray-700 p-2 rounded-md text-white"
+              />
+            </div>
           </div>
-          
+
           <h3 className="text-gray-400 font-semibold text-lg mt-6">Breakdown</h3>
 
           <div className="overflow-x-auto mt-4">
@@ -160,7 +183,7 @@ export default function NetWorth() {
                 </tr>
               </thead>
               <tbody>
-                {[...assets, ...liabilities].map((item) => (
+                {[...filteredAssets, ...filteredLiabilities].map((item) => (
                   <tr
                     key={item.id}
                     className="bg-gray-700 border-b border-gray-800"
@@ -200,61 +223,13 @@ export default function NetWorth() {
             open={modalOpen}
             onClose={closeModal}
           >
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
-              <Dialog.Title className="text-lg font-bold text-white mb-4">
-                {editingItem?.id ? "Edit" : "Add"} {itemType}
-              </Dialog.Title>
-
-              <input
-                type="text"
-                placeholder="Description"
-                value={editingItem?.description ?? ""}
-                onChange={(e) =>
-                  setEditingItem({
-                    ...editingItem,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
-              />
-              {errors.description && (
-                <p className="text-red-500 text-sm">{errors.description}</p>
-              )}
-
-              <input
-                type="number"
-                placeholder="Amount"
-                value={editingItem?.[itemType === "asset" ? "value" : "amount"] ?? ""}
-                onChange={(e) => {
-                  const newValue =
-                    e.target.value === "" ? "" : Number(e.target.value);
-                  setEditingItem({
-                    ...editingItem,
-                    [itemType === "asset" ? "value" : "amount"]: newValue,
-                  });
-                }}
-                className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
-              />
-              {errors.amount && (
-                <p className="text-red-500 text-sm">{errors.amount}</p>
-              )}
-
-              {/* Button Container */}
-              <div className="flex justify-end space-x-2">
-                <button
-                  onClick={closeModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
-                >
-                  Save
-                </button>
-              </div>
-            </div>
+            <NetWorthForm
+              editingItem={editingItem}
+              itemType={itemType}
+              errors={errors}
+              handleSave={handleSave}
+              setEditingItem={setEditingItem}
+            />
           </Dialog>
         </Transition>
 
