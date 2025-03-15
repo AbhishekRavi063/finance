@@ -43,7 +43,9 @@ export default function Sidebar() {
           {user?.displayName ? user.displayName.charAt(0) : "U"}
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-white">{user?.displayName || "Guest"}</h2>
+          <h2 className="text-lg font-semibold text-white">
+            {user?.displayName || "Guest"}
+          </h2>
           <p className="text-gray-400 text-sm">{user?.email}</p>
         </div>
       </div>
@@ -55,7 +57,11 @@ export default function Sidebar() {
             key={item.name}
             href={item.href}
             className={`flex items-center space-x-3 py-2 px-3 rounded-md transition
-            ${pathname === item.href ? "bg-gray-700 text-white" : "hover:bg-gray-700 text-gray-300"}`}
+            ${
+              pathname === item.href
+                ? "bg-gray-700 text-white"
+                : "hover:bg-gray-700 text-gray-300"
+            }`}
           >
             {item.icon} <span>{item.name}</span>
           </Link>
@@ -66,9 +72,9 @@ export default function Sidebar() {
       {user && (
         <button
           onClick={handleLogout}
-          className="mt-auto bg-red-600 py-2 px-3 rounded-md hover:bg-red-700 transition flex items-center justify-center"
+          className="mt-6 bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition"
         >
-          <FaSignOutAlt className="mr-2" /> Logout
+          Logout
         </button>
       )}
     </aside>

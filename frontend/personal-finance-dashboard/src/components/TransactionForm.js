@@ -4,33 +4,33 @@ import { auth } from "../../lib/firebase";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function TransactionForm({ isOpen, closeModal, fetchTransactions, transaction }) {
+export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset }) {
   const [formData, setFormData] = useState({
-    type: "expense",
+    type: "asset",
     amount: "",
     category: "",
     description: "",
     date: "",
   });
 
-  const [categories, setCategories] = useState(["Food", "Transport", "Entertainment"]);
+  const [categories, setCategories] = useState(["Bank Account", "Investment", "Property"]);
   const [newCategory, setNewCategory] = useState("");
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (transaction) {
-      setFormData(transaction);
+    if (asset) {
+      setFormData(asset);
     } else {
       setFormData({
-        type: "expense",
+        type: "asset",
         amount: "",
         category: "",
         description: "",
         date: "",
       });
     }
-  }, [transaction]);
+  }, [asset]);
 
   function handleCategoryChange(category) {
     if (category === "add_new") {
@@ -70,9 +70,9 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
     try {
       const response = await fetch(
-        transaction ? `${API_URL}/api/transactions/${transaction.id}` : `${API_URL}/api/transactions`,
+        asset ? `${API_URL}/api/networth/${asset.id}` : `${API_URL}/api/networth`,
         {
-          method: transaction ? "PUT" : "POST",
+          method: asset ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
@@ -82,9 +82,35 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
       if (response.ok) {
         closeModal();
-        fetchTransactions(user.uid);
+        fetchNetWorth(user.uid);
       } else {
-        console.error("Error adding/updating transaction:", data);
+        console.error("Error adding/updating asset:", data);
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
+
+  async function handleDelete() {
+    if (!asset) return;
+
+    const user = auth.currentUser;
+    if (!user) {
+      console.error("User not authenticated");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/networth/${asset.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (response.ok) {
+        closeModal();
+        fetchNetWorth(user.uid);
+      } else {
+        console.error("Error deleting asset");
       }
     } catch (error) {
       console.error("Network error:", error);
@@ -96,18 +122,18 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
       <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isOpen} onClose={closeModal}>
         <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
           <Dialog.Title className="text-lg font-bold text-white mb-4">
-            {transaction ? "Edit Transaction" : "Add New Transaction"}
+            {asset ? "Edit Asset/Liability" : "Add New Asset/Liability"}
           </Dialog.Title>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-400">Transaction Type</label>
+              <label className="block text-gray-400">Type</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
               >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
+                <option value="asset">Asset</option>
+                <option value="liability">Liability</option>
               </select>
             </div>
             <div>
@@ -176,48 +202,25 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
               >
                 Cancel
               </button>
+              {asset && (
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Delete
+                </button>
+              )}
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                {transaction ? "Update" : "Save"}
+                {asset ? "Update" : "Save"}
               </button>
             </div>
           </form>
         </div>
       </Dialog>
-
-      {/* New Category Modal */}
-      <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
-        <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isNewCategoryModalOpen} onClose={() => setIsNewCategoryModalOpen(false)}>
-          <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
-            <Dialog.Title className="text-lg font-bold text-white mb-4">
-              Add New Category
-            </Dialog.Title>
-            <input
-              type="text"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
-              placeholder="Enter new category name"
-            />
-            <div className="flex justify-between mt-4">
-              <button
-                onClick={() => setIsNewCategoryModalOpen(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleNewCategorySubmit}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              >
-                Add Category
-              </button>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
     </Transition>
   );
 }

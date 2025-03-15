@@ -39,9 +39,7 @@ export default function Dashboard() {
             console.error("Error fetching transactions:", data.error);
           }
 
-          // Fetch net worth (if needed)
-          const netWorthData = await fetchNetWorth(user.uid);
-          setNetWorth(netWorthData);
+        
         } catch (error) {
           console.error("❌ Error fetching data:", error);
         }
@@ -53,10 +51,6 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push("/");
-  };
 
   const months = ["All", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const categories = ["All", ...new Set(transactions.map((t) => t.category))];
@@ -68,6 +62,8 @@ export default function Dashboard() {
       (selectedCategory === "All" || t.category === selectedCategory)
     );
   });
+
+  
 
   const totalIncome = filteredTransactions
     .filter((t) => t.type === "income")
@@ -146,9 +142,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        <button onClick={handleLogout} className="mt-6 bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition">
-          Logout
-        </button>
+        
       </main>
     </div>
   );

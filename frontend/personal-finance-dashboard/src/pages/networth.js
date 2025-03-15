@@ -1,110 +1,169 @@
 import { useEffect, useState } from "react";
 import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
-import { supabase } from "../../lib/supabaseClient"; // Ensure you have Supabase client
-import { useRouter } from "next/router"; // Import useRouter
 import { auth } from "../../lib/firebase";
+import { Dialog, Transition } from "@headlessui/react";
+import { FaTrash, FaEdit, FaPlus, FaEye } from "react-icons/fa";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NetWorth() {
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
-  const [newAsset, setNewAsset] = useState({ name: "", value: 0 });
-  const [newLiability, setNewLiability] = useState({ name: "", amount: 0 });
-  const [user, setUser] = useState(null);  // Store user information
-  const [showAssetModal, setShowAssetModal] = useState(false);
-  const [showLiabilityModal, setShowLiabilityModal] = useState(false);
-
-  const router = useRouter();
+  const [user, setUser] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [itemType, setItemType] = useState(""); // 'asset' or 'liability'
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-        console.log("🔥 Logged-in User UID:", user.uid); // Debugging
-  
-        // Directly call the API to fetch assets and liabilities for the logged-in user
-        try {
-          // Fetch assets
-          const assetsResponse = await fetch(`${API_URL}/api/assets?firebase_uid=${user.uid}`);
-          const assetsData = await assetsResponse.json();
-          if (assetsResponse.ok) {
-            setAssets(assetsData);
-            console.log("💰 All Assets:", assetsData); // ✅ Console log all assets
-          } else {
-            console.error("Error fetching assets:", assetsData.error);
-          }
-  
-          // Fetch liabilities
-          const liabilitiesResponse = await fetch(`${API_URL}/api/liabilities?firebase_uid=${user.uid}`);
-          const liabilitiesData = await liabilitiesResponse.json();
-          if (liabilitiesResponse.ok) {
-            setLiabilities(liabilitiesData);
-            console.log("💸 All Liabilities:", liabilitiesData); // ✅ Console log all liabilities
-          } else {
-            console.error("Error fetching liabilities:", liabilitiesData.error);
-          }
-  
-        } catch (error) {
-          console.error("❌ Error fetching data:", error);
-        }
-      } else {
-        router.push("/");
+        fetchAssets(user.uid);
+        fetchLiabilities(user.uid);
       }
     });
-  
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
-  // Calculate totals
-  const totalAssets = assets.reduce((acc, asset) => acc + (asset.value || 0), 0);
-  const totalLiabilities = liabilities.reduce(
-    (acc, liability) => acc + (liability.amount || 0),
-    0
-  );
+  async function fetchAssets(userId) {
+    if (!userId) return;
+    try {
+      const response = await fetch(`${API_URL}/api/assets?firebase_uid=${userId}`);
+      const data = await response.json();
+      if (response.ok) setAssets(data);
+      else console.error("Error fetching assets:", data.error);
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
+
+  async function fetchLiabilities(userId) {
+    if (!userId) return;
+    try {
+      const response = await fetch(`${API_URL}/api/liabilities?firebase_uid=${userId}`);
+      const data = await response.json();
+      if (response.ok) setLiabilities(data);
+      else console.error("Error fetching liabilities:", data.error);
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
+
+  
+
+  async function deleteItem(id, type) {
+    const user = auth.currentUser;
+    if (!user) return;
+  
+    // Correct pluralization for "liability"
+    const endpoint = type === "liability" ? "liabilities" : "assets";
+  
+    try {
+      const response = await fetch(`${API_URL}/api/${endpoint}/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ firebase_uid: user.uid }),
+      });
+  
+      const textResponse = await response.text();
+      console.log("Raw API Response:", textResponse);
+  
+      if (!response.ok) {
+        throw new Error(`Failed to delete: ${textResponse}`);
+      }
+  
+      type === "asset" ? fetchAssets(user.uid) : fetchLiabilities(user.uid);
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
+  
+  
+
+  function openModal(type, item = null) {
+    setEditingItem(
+      item || { description: "", value: "", amount: "" }
+    );
+    setItemType(type);
+    setModalOpen(true);
+  }
+
+  function closeModal() {
+    setModalOpen(false);
+    setEditingItem(null);
+  }
+
+
+
+  async function handleSave() {
+    const user = auth.currentUser;
+    if (!user) return;
+  
+    const url = editingItem?.id
+    ? `${API_URL}/api/${itemType === "asset" ? "assets" : "liabilities"}/${editingItem.id}` // Append ID for updates
+    :  `${API_URL}/api/${itemType === "asset" ? "assets" : "liabilities"}`; // Use this for new assets
+
+    const method = editingItem?.id ? "PUT" : "POST";
+  
+    const payload = {
+      firebase_uid: user.uid,
+      description: editingItem.description,
+      type: itemType,
+    };
+  
+    if (itemType === "asset") {
+      payload.value = Number(editingItem.value || 0);
+    } else {
+      payload.amount = Number(editingItem.amount || 0);
+    }
+  
+    if (editingItem?.id) {
+      payload.id = editingItem.id;
+    }
+  
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      console.log("API Response Status:", response.status);
+      console.log("API Response Headers:", response.headers.get("content-type"));
+  
+      // Attempt to parse JSON only if the response is JSON
+      const textResponse = await response.text();
+      console.log("Raw API Response:", textResponse);
+  
+      if (!response.ok) {
+        throw new Error("Failed to save: " + textResponse);
+      }
+  
+      const data = JSON.parse(textResponse); // Convert to JSON if valid
+      console.log("Parsed API Response:", data);
+  
+      closeModal();
+      itemType === "asset" ? fetchAssets(user.uid) : fetchLiabilities(user.uid);
+    } catch (error) {
+      console.error("Network error:", error);
+    }
+  }
+  
+  
+  
+
+  const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
+  const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
-
-  const handleAddAsset = async () => {
-    if (newAsset.name && newAsset.value > 0) {
-      const updatedAssets = [...assets, { ...newAsset, user_id: "current_user_id" }];
-      setAssets(updatedAssets);
-      // Add asset to Supabase
-      await supabase
-        .from("assets")
-        .upsert([{ user_id: "current_user_id", name: newAsset.name, value: newAsset.value }]); // Replace with actual user_id
-      setNewAsset({ name: "", value: 0 });
-      setShowAssetModal(false); // Close modal
-    }
-  };
-
-  const handleAddLiability = async () => {
-    if (newLiability.name && newLiability.amount > 0) {
-      const updatedLiabilities = [
-        ...liabilities,
-        { ...newLiability, user_id: "current_user_id" },
-      ];
-      setLiabilities(updatedLiabilities);
-      // Add liability to Supabase
-      await supabase
-        .from("liabilities")
-        .upsert([{ user_id: "current_user_id", name: newLiability.name, amount: newLiability.amount }]); // Replace with actual user_id
-      setNewLiability({ name: "", amount: 0 });
-      setShowLiabilityModal(false); // Close modal
-    }
-  };
 
   return (
     <div className="flex">
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
       <main className="flex-1 p-6 bg-gray-900 text-white">
         <h1 className="text-3xl font-bold">Net Worth</h1>
         <p className="text-gray-400">Track your assets and liabilities</p>
 
-        {/* Stat Cards */}
         <div className="grid grid-cols-3 gap-6 mt-6">
           <StatCard
             title="Total Assets"
@@ -123,52 +182,61 @@ export default function NetWorth() {
           />
         </div>
 
-        {/* Add Asset and Liability Buttons */}
-        <div className="mt-6">
-          <button
-            onClick={() => setShowAssetModal(true)}
-            className="bg-green-500 text-white p-2 rounded-md mr-4"
-          >
-            Add Asset
-          </button>
-          <button
-            onClick={() => setShowLiabilityModal(true)}
-            className="bg-red-500 text-white p-2 rounded-md"
-          >
-            Add Liability
-          </button>
-        </div>
+        <div className="mt-6 p-6 bg-gray-800 rounded-lg shadow-md">
+          
+          <div className="flex justify-center gap-4 mt-4">
+            <button
+              onClick={() => openModal("asset")}
+              className="bg-green-600 px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+            >
+              <FaPlus /> Add Asset
+            </button>
+            <button
+              onClick={() => openModal("liability")}
+              className="bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+            >
+              <FaPlus /> Add Liability
+            </button>
+          </div>
+          
+          <h3 className="text-gray-400 font-semibold text-lg">Breakdown</h3>
 
-        {/* Breakdown Section */}
-        <div className="mt-6 p-6 bg-white rounded-lg shadow-md text-gray-800">
-          <h3 className="text-gray-600 font-semibold">Breakdown</h3>
           <div className="overflow-x-auto mt-4">
-            <table className="min-w-full table-auto border-collapse">
+            <table className="w-full border-collapse border border-gray-700">
               <thead>
-                <tr>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Type</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Name</th>
-                  <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Value</th>
+                <tr className="bg-gray-900 text-gray-300">
+                  <th className="p-3 text-left">Type</th>
+                  <th className="p-3 text-left">Description</th>
+                  <th className="p-3 text-left">Value</th>
+                  <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {/* Assets Breakdown */}
-                {assets.map((asset) => (
-                  <tr key={asset.id} className="bg-gray-100 border-b">
-                    <td className="px-4 py-2 text-sm text-gray-700">Asset</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{asset.name}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {asset.value && !isNaN(asset.value) ? `$${asset.value.toLocaleString()}` : "N/A"}
+                {[...assets, ...liabilities].map((item) => (
+                  <tr
+                    key={item.id}
+                    className="bg-gray-700 border-b border-gray-800"
+                  >
+                    <td className="p-3 text-left">
+                      {item.type === "asset" ? "Asset" : "Liability"}
                     </td>
-                  </tr>
-                ))}
-                {/* Liabilities Breakdown */}
-                {liabilities.map((liability) => (
-                  <tr key={liability.id} className="bg-gray-200 border-b">
-                    <td className="px-4 py-2 text-sm text-gray-700">Liability</td>
-                    <td className="px-4 py-2 text-sm text-gray-700 capitalize">{liability.name}</td>
-                    <td className="px-4 py-2 text-sm text-gray-700">
-                      {liability.amount && !isNaN(liability.amount) ? `$${liability.amount.toLocaleString()}` : "N/A"}
+                    <td className="p-3 text-left">{item.description}</td>
+                    <td className="p-3 text-left">
+                      ${item.value || item.amount}
+                    </td>
+                    <td className="p-3 flex justify-center space-x-3">
+                      <button
+                        onClick={() => openModal(item.type, item)}
+                        className="text-yellow-400 hover:text-yellow-300"
+                      >
+                        <FaEdit />
+                      </button>
+                      <button
+                        onClick={() => deleteItem(item.id, item.type)}
+                        className="text-red-400 hover:text-red-300"
+                      >
+                        <FaTrash />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -177,85 +245,66 @@ export default function NetWorth() {
           </div>
         </div>
 
-        {/* Asset Modal */}
-        {showAssetModal && (
-          <div className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-75">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-1/3">
-              <h3 className="text-xl font-semibold text-gray-200">Add New Asset</h3>
-              <input
-                type="text"
-                placeholder="Asset Name"
-                value={newAsset.name}
-                onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-                className="mt-2 p-2 w-full border border-gray-600 rounded-md bg-gray-700 text-white"
-              />
-              <input
-                type="number"
-                placeholder="Asset Value"
-                value={newAsset.value}
-                onChange={(e) =>
-                  setNewAsset({ ...newAsset, value: parseFloat(e.target.value) })
-                }
-                className="mt-2 p-2 w-full border border-gray-600 rounded-md bg-gray-700 text-white"
-              />
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={handleAddAsset}
-                  className="bg-green-500 text-white p-2 rounded-md"
-                >
-                  Add Asset
-                </button>
-                <button
-                  onClick={() => setShowAssetModal(false)}
-                  className="ml-2 bg-gray-600 text-white p-2 rounded-md"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Add/Edit Modal */}
+        <Transition appear show={modalOpen} as="div">
+          <Dialog
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            open={modalOpen}
+            onClose={closeModal}
+          >
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+              <Dialog.Title className="text-lg font-bold text-white mb-4">
+                {editingItem?.id ? "Edit" : "Add"} {itemType}
+              </Dialog.Title>
 
-        {/* Liability Modal */}
-        {showLiabilityModal && (
-          <div className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-75">
-            <div className="bg-gray-800 p-6 rounded-lg shadow-lg w-1/3">
-              <h3 className="text-xl font-semibold text-gray-200">Add New Liability</h3>
               <input
                 type="text"
-                placeholder="Liability Name"
-                value={newLiability.name}
+                placeholder="Description"
+                value={editingItem?.description ?? ""}
                 onChange={(e) =>
-                  setNewLiability({ ...newLiability, name: e.target.value })
+                  setEditingItem({
+                    ...editingItem,
+                    description: e.target.value,
+                  })
                 }
-                className="mt-2 p-2 w-full border border-gray-600 rounded-md bg-gray-700 text-white"
+                className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
               />
+
               <input
                 type="number"
-                placeholder="Liability Amount"
-                value={newLiability.amount}
-                onChange={(e) =>
-                  setNewLiability({ ...newLiability, amount: parseFloat(e.target.value) })
+                placeholder="Amount"
+                value={
+                  editingItem?.[itemType === "asset" ? "value" : "amount"] ?? ""
                 }
-                className="mt-2 p-2 w-full border border-gray-600 rounded-md bg-gray-700 text-white"
+                onChange={(e) => {
+                  const newValue =
+                    e.target.value === "" ? "" : Number(e.target.value);
+                  setEditingItem({
+                    ...editingItem,
+                    [itemType === "asset" ? "value" : "amount"]: newValue,
+                  });
+                }}
+                className="w-full p-2 mb-4 bg-gray-800 border border-gray-700 rounded text-white"
               />
-              <div className="mt-4 flex justify-end">
+
+              {/* Button Container */}
+              <div className="flex justify-end space-x-2">
                 <button
-                  onClick={handleAddLiability}
-                  className="bg-red-500 text-white p-2 rounded-md"
-                >
-                  Add Liability
-                </button>
-                <button
-                  onClick={() => setShowLiabilityModal(false)}
-                  className="ml-2 bg-gray-600 text-white p-2 rounded-md"
+                  onClick={closeModal}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
                 >
                   Cancel
                 </button>
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Save
+                </button>
               </div>
             </div>
-          </div>
-        )}
+          </Dialog>
+        </Transition>
       </main>
     </div>
   );
