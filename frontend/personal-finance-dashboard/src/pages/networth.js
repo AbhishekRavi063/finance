@@ -4,6 +4,8 @@ import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
 import { Dialog, Transition } from "@headlessui/react";
 import { FaTrash, FaEdit, FaPlus, FaEye } from "react-icons/fa";
+import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi"; // Import functions
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -19,72 +21,35 @@ export default function NetWorth() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-        fetchAssets(user.uid);
-        fetchLiabilities(user.uid);
+        setAssets(await fetchAssets(user.uid));
+        setLiabilities(await fetchLiabilities(user.uid));
       }
     });
     return () => unsubscribe();
   }, []);
 
-  async function fetchAssets(userId) {
-    if (!userId) return;
-    try {
-      const response = await fetch(`${API_URL}/api/assets?firebase_uid=${userId}`);
-      const data = await response.json();
-      if (response.ok) setAssets(data);
-      else console.error("Error fetching assets:", data.error);
-    } catch (error) {
-      console.error("Network error:", error);
+  async function handleDelete(id, type) {
+    if (await deleteItem(user.uid, id, type)) {
+      type === "asset"
+        ? setAssets(await fetchAssets(user.uid))
+        : setLiabilities(await fetchLiabilities(user.uid));
     }
   }
 
-  async function fetchLiabilities(userId) {
-    if (!userId) return;
-    try {
-      const response = await fetch(`${API_URL}/api/liabilities?firebase_uid=${userId}`);
-      const data = await response.json();
-      if (response.ok) setLiabilities(data);
-      else console.error("Error fetching liabilities:", data.error);
-    } catch (error) {
-      console.error("Network error:", error);
-    }
-  }
-
-  
-
-  async function deleteItem(id, type) {
-    const user = auth.currentUser;
-    if (!user) return;
-  
-    // Correct pluralization for "liability"
-    const endpoint = type === "liability" ? "liabilities" : "assets";
-  
-    try {
-      const response = await fetch(`${API_URL}/api/${endpoint}/${id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firebase_uid: user.uid }),
-      });
-  
-      const textResponse = await response.text();
-      console.log("Raw API Response:", textResponse);
-  
-      if (!response.ok) {
-        throw new Error(`Failed to delete: ${textResponse}`);
+  async function handleSave() {
+    if (user) {
+      const result = await saveItem(user.uid, editingItem, itemType);
+      if (result) {
+        closeModal();
+        itemType === "asset"
+          ? setAssets(await fetchAssets(user.uid))
+          : setLiabilities(await fetchLiabilities(user.uid));
       }
-  
-      type === "asset" ? fetchAssets(user.uid) : fetchLiabilities(user.uid);
-    } catch (error) {
-      console.error("Network error:", error);
     }
   }
-  
-  
 
   function openModal(type, item = null) {
-    setEditingItem(
-      item || { description: "", value: "", amount: "" }
-    );
+    setEditingItem(item || { description: "", value: "", amount: "" });
     setItemType(type);
     setModalOpen(true);
   }
@@ -93,65 +58,6 @@ export default function NetWorth() {
     setModalOpen(false);
     setEditingItem(null);
   }
-
-
-
-  async function handleSave() {
-    const user = auth.currentUser;
-    if (!user) return;
-  
-    const url = editingItem?.id
-    ? `${API_URL}/api/${itemType === "asset" ? "assets" : "liabilities"}/${editingItem.id}` // Append ID for updates
-    :  `${API_URL}/api/${itemType === "asset" ? "assets" : "liabilities"}`; // Use this for new assets
-
-    const method = editingItem?.id ? "PUT" : "POST";
-  
-    const payload = {
-      firebase_uid: user.uid,
-      description: editingItem.description,
-      type: itemType,
-    };
-  
-    if (itemType === "asset") {
-      payload.value = Number(editingItem.value || 0);
-    } else {
-      payload.amount = Number(editingItem.amount || 0);
-    }
-  
-    if (editingItem?.id) {
-      payload.id = editingItem.id;
-    }
-  
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-  
-      console.log("API Response Status:", response.status);
-      console.log("API Response Headers:", response.headers.get("content-type"));
-  
-      // Attempt to parse JSON only if the response is JSON
-      const textResponse = await response.text();
-      console.log("Raw API Response:", textResponse);
-  
-      if (!response.ok) {
-        throw new Error("Failed to save: " + textResponse);
-      }
-  
-      const data = JSON.parse(textResponse); // Convert to JSON if valid
-      console.log("Parsed API Response:", data);
-  
-      closeModal();
-      itemType === "asset" ? fetchAssets(user.uid) : fetchLiabilities(user.uid);
-    } catch (error) {
-      console.error("Network error:", error);
-    }
-  }
-  
-  
-  
 
   const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
@@ -232,7 +138,7 @@ export default function NetWorth() {
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => deleteItem(item.id, item.type)}
+                        onClick={() => handleDelete(item.id, item.type)}
                         className="text-red-400 hover:text-red-300"
                       >
                         <FaTrash />

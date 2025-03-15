@@ -4,33 +4,33 @@ import { auth } from "../../lib/firebase";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset }) {
+export default function TransactionForm({ isOpen, closeModal, fetchTransactions, transaction }) {
   const [formData, setFormData] = useState({
-    type: "asset",
+    type: "expense",
     amount: "",
     category: "",
     description: "",
     date: "",
   });
 
-  const [categories, setCategories] = useState(["Bank Account", "Investment", "Property"]);
+  const [categories, setCategories] = useState(["Food", "Transport", "Entertainment"]);
   const [newCategory, setNewCategory] = useState("");
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
-    if (asset) {
-      setFormData(asset);
+    if (transaction) {
+      setFormData(transaction);
     } else {
       setFormData({
-        type: "asset",
+        type: "expense",
         amount: "",
         category: "",
         description: "",
         date: "",
       });
     }
-  }, [asset]);
+  }, [transaction]);
 
   function handleCategoryChange(category) {
     if (category === "add_new") {
@@ -70,9 +70,9 @@ export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset 
 
     try {
       const response = await fetch(
-        asset ? `${API_URL}/api/networth/${asset.id}` : `${API_URL}/api/networth`,
+        transaction ? `${API_URL}/api/transactions/${transaction.id}` : `${API_URL}/api/transactions`,
         {
-          method: asset ? "PUT" : "POST",
+          method: transaction ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         }
@@ -82,35 +82,9 @@ export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset 
 
       if (response.ok) {
         closeModal();
-        fetchNetWorth(user.uid);
+        fetchTransactions(user.uid);
       } else {
-        console.error("Error adding/updating asset:", data);
-      }
-    } catch (error) {
-      console.error("Network error:", error);
-    }
-  }
-
-  async function handleDelete() {
-    if (!asset) return;
-
-    const user = auth.currentUser;
-    if (!user) {
-      console.error("User not authenticated");
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/api/networth/${asset.id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (response.ok) {
-        closeModal();
-        fetchNetWorth(user.uid);
-      } else {
-        console.error("Error deleting asset");
+        console.error("Error adding/updating transaction:", data);
       }
     } catch (error) {
       console.error("Network error:", error);
@@ -122,18 +96,18 @@ export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset 
       <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isOpen} onClose={closeModal}>
         <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
           <Dialog.Title className="text-lg font-bold text-white mb-4">
-            {asset ? "Edit Asset/Liability" : "Add New Asset/Liability"}
+            {transaction ? "Edit Transaction" : "Add New Transaction"}
           </Dialog.Title>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-400">Type</label>
+              <label className="block text-gray-400">Transaction Type</label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                 className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
               >
-                <option value="asset">Asset</option>
-                <option value="liability">Liability</option>
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
               </select>
             </div>
             <div>
@@ -202,25 +176,48 @@ export default function NetWorthForm({ isOpen, closeModal, fetchNetWorth, asset 
               >
                 Cancel
               </button>
-              {asset && (
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-                >
-                  Delete
-                </button>
-              )}
               <button
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                {asset ? "Update" : "Save"}
+                {transaction ? "Update" : "Save"}
               </button>
             </div>
           </form>
         </div>
       </Dialog>
+
+      {/* New Category Modal */}
+      <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
+        <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isNewCategoryModalOpen} onClose={() => setIsNewCategoryModalOpen(false)}>
+          <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+            <Dialog.Title className="text-lg font-bold text-white mb-4">
+              Add New Category
+            </Dialog.Title>
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
+              placeholder="Enter new category name"
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setIsNewCategoryModalOpen(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleNewCategorySubmit}
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+              >
+                Add Category
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </Transition>
   );
 }
