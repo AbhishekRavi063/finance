@@ -219,13 +219,13 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
             <div className="flex justify-between mt-4">
               <button
                 onClick={() => setIsNewCategoryModalOpen(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleNewCategorySubmit}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
               >
                 Add Category
               </button>

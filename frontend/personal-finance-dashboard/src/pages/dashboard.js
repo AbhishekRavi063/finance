@@ -4,21 +4,19 @@ import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import SummaryCard from "../components/SummaryCard";
 import { FaArrowUp, FaArrowDown, FaBalanceScale } from "react-icons/fa";
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { useRouter } from 'next/router'; // Import useRouter
-import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi"; // Import functions
-
-
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell } from "recharts";
+import { useRouter } from 'next/router';
+import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi"; 
+import { fetchTransactions } from "../app/utils/transactionaspi";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
-
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [assets, setAssets] = useState([]);
   const [liabilities, setLiabilities] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  // const [netWorth, setNetWorth] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -28,22 +26,16 @@ export default function Dashboard() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-                setAssets(await fetchAssets(user.uid));
-                setLiabilities(await fetchLiabilities(user.uid));
+        
+        // Fetch data using helper functions
+        setAssets(await fetchAssets(user.uid));
+        setLiabilities(await fetchLiabilities(user.uid));
         console.log("🔥 Logged-in User UID:", user.uid); // Debugging
         
-        // Directly call the API to fetch transactions for the logged-in user
         try {
-          const response = await fetch(`${API_URL}/api/transactions?firebase_uid=${user.uid}`);
-          const data = await response.json();
-          if (response.ok) {
-            setTransactions(data);
-            console.log("📝 All Transactions:", data); // ✅ Console log all transactions
-          } else {
-            console.error("Error fetching transactions:", data.error);
-          }
-
-        
+          const transactionData = await fetchTransactions(user.uid);
+          setTransactions(transactionData);
+          console.log("📝 All Transactions:", transactionData); // ✅ Console log all transactions
         } catch (error) {
           console.error("❌ Error fetching data:", error);
         }
@@ -54,7 +46,6 @@ export default function Dashboard() {
 
     return () => unsubscribe();
   }, [router]);
-
 
   const months = ["All", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const categories = ["All", ...new Set(transactions.map((t) => t.category))];
@@ -67,8 +58,6 @@ export default function Dashboard() {
     );
   });
 
-  
-
   const totalIncome = filteredTransactions
     .filter((t) => t.type === "income")
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -77,15 +66,40 @@ export default function Dashboard() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-  console.log("Total Income:", totalIncome);
-  console.log("Total Expenses:", totalExpenses);
-
   const COLORS = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#10b981"];
-
 
   const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
   const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
   const netWorth = totalAssets - totalLiabilities;
+
+  // Prepare data for the Income vs Expense chart (Last 6 Months)
+  const lastSixMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+  const incomeExpensesData = lastSixMonths.map((month) => {
+    const monthTransactions = filteredTransactions.filter(
+      (t) => new Date(t.date).toLocaleString("default", { month: "short" }) === month
+    );
+    const income = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    return { month, income, expenses };
+  });
+
+  // Prepare data for the Pie Chart (Expense Breakdown by Category)
+  const expenseCategories = filteredTransactions.filter(t => t.type === 'expense');
+  const categoryExpenseData = [...new Set(expenseCategories.map(t => t.category))].map(category => {
+    const totalCategoryExpense = expenseCategories
+      .filter(t => t.category === category)
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    return { name: category, value: totalCategoryExpense };
+  });
+
+  // Prepare data for the Pie Chart (Income Breakdown by Category)
+  const incomeCategories = filteredTransactions.filter(t => t.type === 'income');
+  const categoryIncomeData = [...new Set(incomeCategories.map(t => t.category))].map(category => {
+    const totalCategoryIncome = incomeCategories
+      .filter(t => t.category === category)
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    return { name: category, value: totalCategoryIncome };
+  });
 
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
@@ -97,61 +111,144 @@ export default function Dashboard() {
         <DashboardHeader />
 
         <div className="flex space-x-4 mt-4">
-          <select
-            className="p-2 border rounded bg-gray-800 text-white"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-          >
-            {months.map((month) => (
-              <option key={month} value={month}>{month}</option>
-            ))}
-          </select>
+          {/* Month Filter */}
+          <div className="flex flex-col">
+            <label htmlFor="month" className="text-sm text-gray-300 ">
+              Filter by Month
+            </label>
+            <select
+              id="month"
+              className="p-2 border rounded bg-gray-800 text-white mt-4"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+            >
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            className="p-2 border rounded bg-gray-800 text-white"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
+          {/* Category Filter */}
+          <div className="flex flex-col">
+            <label htmlFor="category" className="text-sm text-gray-300 ">
+              Filter by Category
+            </label>
+            <select
+              id="category"
+              className="p-2 border rounded bg-gray-800 text-white mt-4"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="grid grid-cols-3 gap-6 mt-6">
-          <SummaryCard title="Total Income" value={`₹${totalIncome}`} percentage="12%" up icon={<FaArrowUp className="text-green-400" />} />
-          <SummaryCard title="Total Expenses" value={`₹${totalExpenses}`} percentage="8%" down icon={<FaArrowDown className="text-red-400" />} />
-          <SummaryCard title="Net Worth" value={`₹${netWorth}`} percentage="7%" up icon={<FaBalanceScale className="text-blue-400" />} />
+          <SummaryCard
+            title="Total Income"
+            value={`₹${totalIncome}`}
+            percentage="12%"
+            up
+            icon={<FaArrowUp className="text-green-400" />}
+          />
+          <SummaryCard
+            title="Total Expenses"
+            value={`₹${totalExpenses}`}
+            percentage="8%"
+            down
+            icon={<FaArrowDown className="text-red-400" />}
+          />
+          <SummaryCard
+            title="Net Worth"
+            value={`₹${netWorth}`}
+            percentage="7%"
+            up
+            icon={<FaBalanceScale className="text-blue-400" />}
+          />
         </div>
 
+        {/* Income vs Expenses (Last 6 Months) */}
         <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-2">Income vs. Expenses</h2>
+          <h2 className="text-xl font-semibold mb-15">
+            Income vs. Expenses (Last 6 Months)
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={filteredTransactions}>
-              <XAxis dataKey="date" stroke="#ddd" />
+            <BarChart data={incomeExpensesData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" stroke="#ddd" />
               <YAxis stroke="#ddd" />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="amount" stroke="#4CAF50" />
-            </LineChart>
+              <Bar dataKey="income" fill="#22c55e" />
+              <Bar dataKey="expenses" fill="#ef4444" />
+            </BarChart>
           </ResponsiveContainer>
         </div>
 
+        {/* Expense and Income Breakdown by Category */}
         <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-2">Expense Breakdown by Category</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie data={filteredTransactions} dataKey="amount" nameKey="category" cx="50%" cy="50%" outerRadius={100}>
-                {filteredTransactions.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+          <h2 className="text-xl font-semibold mb-15">
+            Expense and Income Breakdown by Category
+          </h2>
+          <div className="flex justify-between space-x-4">
+            {/* Expense Breakdown */}
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2">Expense Breakdown</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryExpenseData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                  >
+                    {categoryExpenseData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-        
+            {/* Income Breakdown */}
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold mb-2">Income Breakdown</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryIncomeData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                  >
+                    {categoryIncomeData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
       </main>
     </div>
   );
