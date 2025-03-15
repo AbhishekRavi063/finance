@@ -21,6 +21,8 @@ export default function Transactions() {
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [viewTransaction, setViewTransaction] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Delete confirmation modal states
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
@@ -97,6 +99,18 @@ export default function Transactions() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
+
+    const filteredTransactionss = transactions.filter(liability =>
+      liability.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  
+    // Pagination logic
+    const totalItems = [...filteredTransactionss];
+    const totalPages = Math.ceil(totalItems.length / rowsPerPage);
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
+  
+
   return (
     
       <div className="flex min-h-screen bg-gray-900 text-white mt-10">
@@ -167,7 +181,7 @@ export default function Transactions() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTransactions.map((txn) => (
+                    {currentItems.map((txn) => (
                       <tr key={txn.id} className="border-b border-gray-700">
                         <td className="py-2 px-4">{txn.description}</td>
                         <td className={`py-2 px-4 ${txn.type === "expense" ? "text-red-500" : "text-green-500"}`}>
@@ -200,6 +214,42 @@ export default function Transactions() {
             fetchTransactions={fetchUserTransactions}
             transaction={editingTransaction}
           />
+
+          {/* Rows per page dropdown */}
+          <div className="flex justify-end mt-4">
+            <label htmlFor="rows-per-page" className="text-white mr-2">Rows per page:</label>
+            <select
+              id="rows-per-page"
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+              className="bg-gray-700 text-white px-3 py-1 rounded-md"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center mt-4">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+            >
+              Previous
+            </button>
+            <div className="text-white">
+              Page {currentPage} of {totalPages}
+            </div>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+            >
+              Next
+            </button>
+          </div>
+        
 
           {/* View Transaction Modal */}
           <Transition appear show={viewModalOpen} as="div">

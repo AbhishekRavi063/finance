@@ -8,7 +8,6 @@ import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/util
 import { useNetWorthStore } from "../app/store/netWorthStore"; // Import Zustand store
 import NetWorthForm from "@/components/NetWorthForm"; // Import the new form component
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function NetWorth() {
   const {
@@ -33,6 +32,8 @@ export default function NetWorth() {
   } = useNetWorthStore();
 
   const [errors, setErrors] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -117,6 +118,12 @@ export default function NetWorth() {
     liability.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Pagination logic
+  const totalItems = [...filteredAssets, ...filteredLiabilities];
+  const totalPages = Math.ceil(totalItems.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
+
   return (
     <div className="flex flex-col lg:flex-row mt-10">
       <Sidebar />
@@ -183,7 +190,7 @@ export default function NetWorth() {
                 </tr>
               </thead>
               <tbody>
-                {[...filteredAssets, ...filteredLiabilities].map((item) => (
+                {currentItems.map((item) => (
                   <tr
                     key={item.id}
                     className="bg-gray-700 border-b border-gray-800"
@@ -213,6 +220,41 @@ export default function NetWorth() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Rows per page dropdown */}
+          <div className="flex justify-end mt-4">
+            <label htmlFor="rows-per-page" className="text-white mr-2">Rows per page:</label>
+            <select
+              id="rows-per-page"
+              value={rowsPerPage}
+              onChange={(e) => setRowsPerPage(Number(e.target.value))}
+              className="bg-gray-700 text-white px-3 py-1 rounded-md"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex justify-between items-center mt-4">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+            >
+              Previous
+            </button>
+            <div className="text-white">
+              Page {currentPage} of {totalPages}
+            </div>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+            >
+              Next
+            </button>
           </div>
         </div>
 
