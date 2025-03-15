@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { auth } from "../../lib/firebase";
-import { signOut } from "firebase/auth";
-import { fetchNetWorth } from "../../lib/queries";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import SummaryCard from "../components/SummaryCard";
 import { FaArrowUp, FaArrowDown, FaBalanceScale } from "react-icons/fa";
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useRouter } from 'next/router'; // Import useRouter
+import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi"; // Import functions
+
 
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -15,8 +15,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Dashboard() {
   const [user, setUser] = useState(null);
+  const [assets, setAssets] = useState([]);
+  const [liabilities, setLiabilities] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [netWorth, setNetWorth] = useState(null);
+  // const [netWorth, setNetWorth] = useState(null);
   const [selectedMonth, setSelectedMonth] = useState("All");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -26,6 +28,8 @@ export default function Dashboard() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
+                setAssets(await fetchAssets(user.uid));
+                setLiabilities(await fetchLiabilities(user.uid));
         console.log("🔥 Logged-in User UID:", user.uid); // Debugging
         
         // Directly call the API to fetch transactions for the logged-in user
@@ -78,6 +82,11 @@ export default function Dashboard() {
 
   const COLORS = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#10b981"];
 
+
+  const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
+  const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
+  const netWorth = totalAssets - totalLiabilities;
+
   return (
     <div className="flex min-h-screen bg-gray-900 text-white">
       <Sidebar />
@@ -112,7 +121,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-3 gap-6 mt-6">
           <SummaryCard title="Total Income" value={`₹${totalIncome}`} percentage="12%" up icon={<FaArrowUp className="text-green-400" />} />
           <SummaryCard title="Total Expenses" value={`₹${totalExpenses}`} percentage="8%" down icon={<FaArrowDown className="text-red-400" />} />
-          <SummaryCard title="Net Worth" value={`₹${netWorth?.value || 0}`} percentage="7%" up icon={<FaBalanceScale className="text-blue-400" />} />
+          <SummaryCard title="Net Worth" value={`₹${netWorth}`} percentage="7%" up icon={<FaBalanceScale className="text-blue-400" />} />
         </div>
 
         <div className="mt-6 bg-gray-800 p-6 rounded-md">

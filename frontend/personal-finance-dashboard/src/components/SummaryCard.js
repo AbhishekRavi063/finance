@@ -7,7 +7,7 @@ export default function SummaryCard({ title, value, percentage, up, down, icon }
         </div>
         <p className="text-3xl font-bold mt-2">{value}</p>
         <p className={`text-sm mt-1 ${up ? "text-green-400" : "text-red-400"}`}>
-          {percentage} {up ? "▲" : "▼"} vs last month
+          
         </p>
       </div>
     );

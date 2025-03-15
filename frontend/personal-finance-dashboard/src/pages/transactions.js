@@ -4,6 +4,7 @@ import Layout from "@/app/layout";
 import { auth } from "../../lib/firebase";
 import TransactionForm from "../components/TransactionForm";
 import { Dialog, Transition } from "@headlessui/react";
+import { fetchTransactions, deleteTransaction } from "../app/utils/transactionaspi"; // Import the functions
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -16,53 +17,31 @@ export default function Transactions() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [viewTransaction, setViewTransaction] = useState(null);
 
+  // Delete confirmation modal states
+  const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+
   // Fetch user transactions when authenticated
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) fetchTransactions(user.uid);
+      if (user) fetchUserTransactions(user.uid); // Use the new fetchTransactions function
     });
     return () => unsubscribe();
   }, []);
 
-  async function fetchTransactions(userId) {
-    if (!userId) return;
-    try {
-      const response = await fetch(`${API_URL}/api/transactions?firebase_uid=${userId}`);
-      const data = await response.json();
-      if (response.ok) {
-        setTransactions(data);
-        setFilteredTransactions(data); // Initialize filtered transactions
-      } else {
-        console.error("Error fetching transactions:", data.error);
-      }
-    } catch (error) {
-      console.error("Network error:", error);
-    }
+  async function fetchUserTransactions(userId) {
+    const data = await fetchTransactions(userId); // Call the fetch function from API file
+    setTransactions(data);
+    setFilteredTransactions(data); // Initialize filtered transactions
   }
 
-  async function deleteTransaction(transactionId) {
+  async function handleDelete(transactionId) {
     const user = auth.currentUser;
-    if (!user) {
-      console.error("User is not authenticated.");
-      return;
-    }
-    try {
-      const response = await fetch(`${API_URL}/api/transactions/${transactionId}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ firebase_uid: user.uid }), // Pass the firebase_uid
-      });
-
-      if (response.ok) {
-        await fetchTransactions(user.uid); // Refresh the transactions after deletion
-      } else {
-        const data = await response.json();
-        console.error("Error deleting transaction:", data.error);
+    if (user) {
+      const isDeleted = await deleteTransaction(transactionId, user.uid); // Call the delete function from API file
+      if (isDeleted) {
+        await fetchUserTransactions(user.uid); // Refresh the transactions after deletion
       }
-    } catch (error) {
-      console.error("Network error:", error);
     }
   }
 
@@ -99,10 +78,20 @@ export default function Transactions() {
     setViewTransaction(null);
   }
 
+  function openDeleteConfirmationModal(transaction) {
+    setTransactionToDelete(transaction);
+    setDeleteConfirmationOpen(true);
+  }
+
+  function closeDeleteConfirmationModal() {
+    setDeleteConfirmationOpen(false);
+    setTransactionToDelete(null);
+  }
+
   return (
     <Layout>
-      <div className="bg-darkCard p-6 rounded-lg border border-darkBorder bg-gray-900">
-        <h1 className="text-2xl font-bold">Transactions</h1>
+      <div className="bg-darkCard p-6 rounded-lg border border-darkBorder bg-gray-900 ">
+        <h1 className="text-2xl  font-bold text-amber-50">Transactions</h1>
         <p className="text-gray-400">Manage your income and expenses</p>
 
         <div className="flex items-center justify-between mt-4">
@@ -118,7 +107,7 @@ export default function Transactions() {
           </div>
           <button
             onClick={() => openModal()}
-            className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 flex items-center"
+            className="bg-blue-600 px-4 py-2 rounded-md hover:bg-blue-700 flex items-center cursor-pointer"
           >
             <FaPlus className="mr-2" /> Add Transaction
           </button>
@@ -157,13 +146,13 @@ export default function Transactions() {
                       <td className="py-2 px-4">{txn.category}</td>
                       <td className="py-2 px-4">{txn.date}</td>
                       <td className="py-2 px-4 flex space-x-3 justify-center">
-                        <button onClick={() => openViewModal(txn)} className="text-blue-400 hover:text-blue-300">
+                        <button onClick={() => openViewModal(txn)} className="text-blue-400 cursor-pointer hover:text-blue-300">
                           <FaEye />
                         </button>
-                        <button onClick={() => openModal(txn)} className="text-yellow-400 hover:text-yellow-300">
+                        <button onClick={() => openModal(txn)} className="text-yellow-400 cursor-pointer hover:text-yellow-300">
                           <FaEdit />
                         </button>
-                        <button onClick={() => deleteTransaction(txn.id)} className="text-red-400 hover:text-red-300">
+                        <button onClick={() => openDeleteConfirmationModal(txn)} className="text-red-400 cursor-pointer hover:text-red-300">
                           <FaTrash />
                         </button>
                       </td>
@@ -178,7 +167,7 @@ export default function Transactions() {
         <TransactionForm
           isOpen={isOpen}
           closeModal={closeModal}
-          fetchTransactions={fetchTransactions}
+          fetchTransactions={fetchUserTransactions}
           transaction={editingTransaction}
         />
 
@@ -201,6 +190,46 @@ export default function Transactions() {
               <div className="mt-4 text-right">
                 <button onClick={closeViewModal} className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
                   Close
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
+
+        {/* Delete Confirmation Modal */}
+        <Transition appear show={deleteConfirmationOpen} as="div">
+          <Dialog
+            as="div"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            open={deleteConfirmationOpen}
+            onClose={closeDeleteConfirmationModal}
+          >
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+              <Dialog.Title className="text-lg font-bold text-white mb-4">
+                Are you sure you want to delete this transaction?
+              </Dialog.Title>
+              {transactionToDelete && (
+                <div className="text-gray-300 space-y-2">
+                  <p><strong>Description:</strong> {transactionToDelete.description}</p>
+                  <p><strong>Amount:</strong> ${transactionToDelete.amount}</p>
+                  <p><strong>Category:</strong> {transactionToDelete.category}</p>
+                </div>
+              )}
+              <div className="mt-4 flex justify-between">
+                <button
+                  onClick={closeDeleteConfirmationModal}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    handleDelete(transactionToDelete.id);
+                    closeDeleteConfirmationModal();
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Confirm Delete
                 </button>
               </div>
             </div>

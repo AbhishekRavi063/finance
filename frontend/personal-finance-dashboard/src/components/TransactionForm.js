@@ -83,12 +83,27 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
       if (response.ok) {
         closeModal();
         fetchTransactions(user.uid);
+        resetForm(); // Reset the form after submission
       } else {
         console.error("Error adding/updating transaction:", data);
       }
     } catch (error) {
       console.error("Network error:", error);
     }
+  }
+
+  // Reset form state
+  function resetForm() {
+    setFormData({
+      type: "expense",
+      amount: "",
+      category: "",
+      description: "",
+      date: "",
+    });
+    setNewCategory(""); // Reset new category input
+    setIsNewCategoryModalOpen(false); // Close the new category modal
+    setIsDropdownOpen(false); // Close the category dropdown
   }
 
   return (

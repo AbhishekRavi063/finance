@@ -3,9 +3,8 @@ import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
 import { Dialog, Transition } from "@headlessui/react";
-import { FaTrash, FaEdit, FaPlus, FaEye } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
 import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi"; // Import functions
-
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -16,6 +15,8 @@ export default function NetWorth() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemType, setItemType] = useState(""); // 'asset' or 'liability'
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State to manage delete confirmation modal
+  const [itemToDelete, setItemToDelete] = useState(null); // To store item to be deleted
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -28,12 +29,27 @@ export default function NetWorth() {
     return () => unsubscribe();
   }, []);
 
-  async function handleDelete(id, type) {
-    if (await deleteItem(user.uid, id, type)) {
-      type === "asset"
-        ? setAssets(await fetchAssets(user.uid))
-        : setLiabilities(await fetchLiabilities(user.uid));
+  async function handleDelete() {
+    if (itemToDelete) {
+      const { id, type } = itemToDelete;
+      if (await deleteItem(user.uid, id, type)) {
+        type === "asset"
+          ? setAssets(await fetchAssets(user.uid))
+          : setLiabilities(await fetchLiabilities(user.uid));
+      }
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null); // Reset item to delete after confirmation
     }
+  }
+
+  function openDeleteModal(item) {
+    setItemToDelete(item);
+    setIsDeleteModalOpen(true);
+  }
+
+  function closeDeleteModal() {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
   }
 
   async function handleSave() {
@@ -89,17 +105,16 @@ export default function NetWorth() {
         </div>
 
         <div className="mt-6 p-6 bg-gray-800 rounded-lg shadow-md">
-          
           <div className="flex justify-center gap-4 mt-4">
             <button
               onClick={() => openModal("asset")}
-              className="bg-green-600 px-4 py-2 rounded-md hover:bg-green-700 flex items-center gap-2"
+              className="bg-green-600 px-4 py-2 rounded-md cursor-pointer hover:bg-green-700 flex items-center gap-2"
             >
               <FaPlus /> Add Asset
             </button>
             <button
               onClick={() => openModal("liability")}
-              className="bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 flex items-center gap-2"
+              className="bg-red-600 px-4 py-2 cursor-pointer rounded-md hover:bg-red-700 flex items-center gap-2"
             >
               <FaPlus /> Add Liability
             </button>
@@ -133,13 +148,13 @@ export default function NetWorth() {
                     <td className="p-3 flex justify-center space-x-3">
                       <button
                         onClick={() => openModal(item.type, item)}
-                        className="text-yellow-400 hover:text-yellow-300"
+                        className="text-yellow-400 hover:text-yellow-300 cursor-pointer"
                       >
                         <FaEdit />
                       </button>
                       <button
-                        onClick={() => handleDelete(item.id, item.type)}
-                        className="text-red-400 hover:text-red-300"
+                        onClick={() => openDeleteModal(item)}
+                        className="text-red-400 hover:text-red-300 cursor-pointer"
                       >
                         <FaTrash />
                       </button>
@@ -206,6 +221,35 @@ export default function NetWorth() {
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                 >
                   Save
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
+
+        {/* Delete Confirmation Modal */}
+        <Transition appear show={isDeleteModalOpen} as="div">
+          <Dialog
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            open={isDeleteModalOpen}
+            onClose={closeDeleteModal}
+          >
+            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
+              <Dialog.Title className="text-lg font-bold text-white mb-4">
+                Are you sure you want to delete this item?
+              </Dialog.Title>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={closeDeleteModal}
+                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Delete
                 </button>
               </div>
             </div>
