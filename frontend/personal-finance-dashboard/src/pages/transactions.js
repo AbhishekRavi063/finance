@@ -160,18 +160,16 @@ export default function Transactions() {
           <SummaryCard
             title="Total Income"
             value={`₹${totalIncome}`}
-            percentage="12%"
-            up
             icon={<FaArrowUp className="text-green-400 " />}
             isDarkMode={isDarkMode}
+            color="text-green-500"
           />
           <SummaryCard
             title="Total Expenses"
             value={`₹${totalExpenses}`}
-            percentage="8%"
-            down
             icon={<FaArrowDown className="text-red-400" />}
             isDarkMode={isDarkMode}
+            color="text-red-500"
           />
         </div>
         <div className="flex items-center justify-between mt-4 flex-wrap gap-4">
@@ -289,7 +287,11 @@ export default function Transactions() {
                             : "text-green-600"
                         }`}
                       >
-                        ₹{txn.amount}
+                        <span title={`₹${txn.amount}`}>
+                          {txn.amount.toString().length > 10
+                            ? `₹${txn.amount.toString().slice(0, 7)}...`
+                            : `₹${txn.amount}`}
+                        </span>
                       </td>
 
                       {/* Category & Date Columns */}

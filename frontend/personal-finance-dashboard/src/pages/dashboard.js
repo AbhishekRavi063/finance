@@ -244,26 +244,24 @@ export default function Dashboard() {
           <SummaryCard
             title="Total Income"
             value={`₹${totalIncome}`}
-            percentage="12%"
-            up
             icon={<FaArrowUp className="text-green-400 " />}
             isDarkMode={isDarkMode}
+            color="text-green-500"
           />
           <SummaryCard
             title="Total Expenses"
             value={`₹${totalExpenses}`}
-            percentage="8%"
-            down
             icon={<FaArrowDown className="text-red-400" />}
             isDarkMode={isDarkMode}
+            color="text-red-500"
           />
           <SummaryCard
             title="Net Worth"
             value={`₹${netWorth}`}
-            percentage="7%"
-            up
             icon={<FaBalanceScale className="text-blue-400" />}
             isDarkMode={isDarkMode}
+            color="text-blue-500"
+
           />
         </div>
 

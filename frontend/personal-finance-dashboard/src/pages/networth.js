@@ -312,7 +312,13 @@ export default function NetWorth() {
                           : "text-red-500"
                       }`}
                     >
-                      ₹{item.value || item.amount}
+                      <span title={`₹${item.value || item.amount}`}>
+                        {(item.value || item.amount).toString().length > 10
+                          ? `₹${(item.value || item.amount)
+                              .toString()
+                              .slice(0, 7)}...`
+                          : `₹${item.value || item.amount}`}
+                      </span>
                     </td>
 
                     <td className="p-3 flex justify-center space-x-3">
