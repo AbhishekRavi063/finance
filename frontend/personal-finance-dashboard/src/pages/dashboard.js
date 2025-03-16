@@ -118,7 +118,7 @@ export default function Dashboard() {
           isDarkMode ? "bg-gray-800" : "bg-gray-300"
         }`}
       >
-        <h1 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+        <h1 className={`text-3xl font-bold mb-6 transition-all duration-300 ${
               isDarkMode ? "text-white" : "text-gray-900"
             }`}>Dashboard</h1>
         <p className={`text-xl font-semibold mb-6 transition-all duration-300 ${
@@ -128,6 +128,7 @@ export default function Dashboard() {
         <DashboardHeader />
 
         <div className="flex flex-wrap md:flex-nowrap space-x-4 mt-4">
+
           {/* Month Filter */}
           <div className="flex flex-col w-full md:w-1/3">
             <label htmlFor="month" className="text-sm text-gray-300">
@@ -136,7 +137,7 @@ export default function Dashboard() {
             <select
               id="month"
               className={`p-2 border rounded transition-all duration-300 ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+                isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
               } mt-4 cursor-pointer`}
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
@@ -157,7 +158,7 @@ export default function Dashboard() {
             <select
               id="category"
               className={`p-2 border rounded transition-all duration-300 ${
-                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+                isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
               } mt-4 cursor-pointer`}
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}

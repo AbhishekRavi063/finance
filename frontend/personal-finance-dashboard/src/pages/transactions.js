@@ -1,14 +1,24 @@
 import { useState, useEffect } from "react";
-import { FaPlus, FaSearch, FaTrash, FaEdit, FaEye, FaArrowUp, FaArrowDown } from "react-icons/fa"; // Add FaArrowUp and FaArrowDown here
+import {
+  FaPlus,
+  FaSearch,
+  FaTrash,
+  FaEdit,
+  FaEye,
+  FaArrowUp,
+  FaArrowDown,
+} from "react-icons/fa"; // Add FaArrowUp and FaArrowDown here
 import Sidebar from "../components/Sidebar";
 import { auth } from "../../lib/firebase";
 import TransactionForm from "../components/TransactionForm";
 import { Dialog, Transition } from "@headlessui/react";
 import useTransactionStore from "../app/store/useTransactionStore";
-import { fetchTransactions, deleteTransaction } from "../app/utils/transactionaspi"; // Import the functions
+import {
+  fetchTransactions,
+  deleteTransaction,
+} from "../app/utils/transactionaspi"; // Import the functions
 import useStore from "../app/store/useStore"; // Import Zustand store
 import SummaryCard from "../components/SummaryCard";
-
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -27,8 +37,6 @@ export default function Transactions() {
     setDarkMode(!isDarkMode); // Toggle between true (dark mode) and false (light mode)
   };
 
-
-
   const [isOpen, setIsOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
@@ -40,24 +48,22 @@ export default function Transactions() {
   const [deleteConfirmationOpen, setDeleteConfirmationOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState(null);
 
-  const [searchQuery, setSearchQueryState] = useState(''); // Use local state for the search query
+  const [searchQuery, setSearchQueryState] = useState(""); // Use local state for the search query
 
   // Fetch user transactions when authenticated
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user)
-        fetchUserTransactions(user.uid); // Use the new fetchTransactions function
+      if (user) fetchUserTransactions(user.uid); // Use the new fetchTransactions function
     });
     return () => unsubscribe();
   }, []);
 
   async function fetchUserTransactions(userId) {
     const data = await fetchTransactions(userId);
-    const sortedData = data.sort((a,b) => new Date(b.date) - new Date(a.date)); // Sort by date in descending order
+    const sortedData = data.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date in descending order
     setTransactions(sortedData);
     setFilteredTransactions(sortedData); // Initialize filtered transactions with sorted data
   }
-  
 
   async function handleDelete(transactionId) {
     const user = auth.currentUser;
@@ -114,17 +120,15 @@ export default function Transactions() {
     .filter((t) => t.type === "expense")
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
+  const filteredTransactionss = transactions.filter((liability) =>
+    liability.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-    const filteredTransactionss = transactions.filter(liability =>
-      liability.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  
-    // Pagination logic
-    const totalItems = [...filteredTransactionss];
-    const totalPages = Math.ceil(totalItems.length / rowsPerPage);
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
-  
+  // Pagination logic
+  const totalItems = [...filteredTransactionss];
+  const totalPages = Math.ceil(totalItems.length / rowsPerPage);
+  const startIndex = (currentPage - 1) * rowsPerPage;
+  const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
 
   return (
     <div
@@ -139,15 +143,15 @@ export default function Transactions() {
         }`}
       >
         <h1
-          className={`text-2xl font-bold transition-all duration-300 ${
+          className={`text-3xl font-bold transition-all duration-300 ${
             isDarkMode ? "text-amber-50" : "text-gray-900"
           }`}
         >
           Transactions
         </h1>
         <p
-          className={`transition-all duration-300 ${
-            isDarkMode ? "text-gray-400" : "text-gray-600"
+          className={`text-xl font-semibold mb-6 transition-all duration-300 mt-5 ${
+            isDarkMode ? "text-white" : "text-gray-900"
           }`}
         >
           Manage your income and expenses
@@ -409,7 +413,7 @@ export default function Transactions() {
             </button>
           </div>
         </div>
-        
+
         {/* View Transaction Modal */}
         <Transition appear show={viewModalOpen} as="div">
           <Dialog
@@ -433,8 +437,14 @@ export default function Transactions() {
                   }`}
                 >
                   <p>
-                    <strong>Description:</strong> {viewTransaction.description}
+                    <strong>Description:</strong>{" "}
+                    <span title={viewTransaction.description}>
+                      {viewTransaction.description.length > 30
+                        ? viewTransaction.description.slice(0, 15) + "..."
+                        : viewTransaction.description}
+                    </span>
                   </p>
+
                   <p>
                     <strong>Amount:</strong> ₹{viewTransaction.amount}
                   </p>
@@ -465,50 +475,47 @@ export default function Transactions() {
           </Dialog>
         </Transition>
 
-
-
-         {/* Delete Confirmation Modal */}
-                <Transition appear show={deleteConfirmationOpen} as="div">
-                  <Dialog
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-                    open={deleteConfirmationOpen}
-                     onClose={closeDeleteConfirmationModal}
-                  >
-                    <div
-                      className={`p-6 rounded-lg shadow-lg w-full sm:w-96 ${
-                        isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
-                      }`}
-                    >
-                      <Dialog.Title className="text-lg font-bold mb-4">
-                        Are you sure you want to delete this item?
-                      </Dialog.Title>
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          onClick={closeDeleteConfirmationModal}
-                          className={`px-4 py-2 rounded hover:opacity-80 cursor-pointer ${
-                            isDarkMode
-                              ? "bg-gray-700 text-white"
-                              : "bg-gray-300 text-black"
-                          }`}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          
-                          onClick={() => {
-                            if (transactionToDelete) {
-                              handleDelete(transactionToDelete.id);
-                            }
-                            closeDeleteConfirmationModal();
-                          }}
-                          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </Dialog>
-                </Transition>
+        {/* Delete Confirmation Modal */}
+        <Transition appear show={deleteConfirmationOpen} as="div">
+          <Dialog
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            open={deleteConfirmationOpen}
+            onClose={closeDeleteConfirmationModal}
+          >
+            <div
+              className={`p-6 rounded-lg shadow-lg w-full sm:w-96 ${
+                isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+              }`}
+            >
+              <Dialog.Title className="text-lg font-bold mb-4">
+                Are you sure you want to delete this item?
+              </Dialog.Title>
+              <div className="flex justify-end space-x-2">
+                <button
+                  onClick={closeDeleteConfirmationModal}
+                  className={`px-4 py-2 rounded hover:opacity-80 cursor-pointer ${
+                    isDarkMode
+                      ? "bg-gray-700 text-white"
+                      : "bg-gray-300 text-black"
+                  }`}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (transactionToDelete) {
+                      handleDelete(transactionToDelete.id);
+                    }
+                    closeDeleteConfirmationModal();
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </Dialog>
+        </Transition>
       </div>
     </div>
   );

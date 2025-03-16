@@ -277,7 +277,7 @@ export default function NetWorth() {
                 >
                   <th className="p-3 text-left">Type</th>
                   <th className="p-3 text-left">Description</th>
-                  <th className="p-3 text-left">Value</th>
+                  <th className="p-3 text-left">Amount</th>
                   <th className="p-3 text-center">Actions</th>
                 </tr>
               </thead>
@@ -430,7 +430,7 @@ export default function NetWorth() {
             />
           </Dialog>
         </Transition>
-      
+
         {/* View Item Modal */}
         <Transition appear show={viewModalOpen} as="div">
           <Dialog
@@ -443,9 +443,6 @@ export default function NetWorth() {
                 isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
               }`}
             >
-              <Dialog.Title className="text-lg font-bold mb-4">
-                {viewItem ? viewItem.description : "View Item"}
-              </Dialog.Title>
               <div
                 className={`mb-4 space-y-5 ${
                   isDarkMode ? "text-gray-300" : "text-gray-700"
@@ -455,11 +452,17 @@ export default function NetWorth() {
                   <strong>Type:</strong>{" "}
                   {viewItem?.type === "asset" ? "Asset" : "Liability"}
                 </p>
-                <p>
-                  <strong>Description:</strong> {viewItem?.description}
+                <p className="overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-[300px]">
+                  <strong>Description:</strong>
+                  {viewItem?.description
+                    ? viewItem.description.length > 30
+                      ? viewItem.description.slice(0, 15) + "..."
+                      : viewItem.description
+                    : "No description available"}
                 </p>
+
                 <p>
-                  <strong>Value/Amount:</strong> $
+                  <strong>Amount:</strong> $
                   {viewItem?.value || viewItem?.amount}
                 </p>
               </div>
@@ -468,7 +471,7 @@ export default function NetWorth() {
                 className={`px-4 py-2 rounded hover:opacity-80 cursor-pointer ${
                   isDarkMode
                     ? "bg-gray-700 text-white"
-                    : "bg-gray-300 text-black"
+                    : "bg-gray-400 text-black"
                 }`}
               >
                 Close
@@ -476,7 +479,7 @@ export default function NetWorth() {
             </div>
           </Dialog>
         </Transition>
-        
+
         {/* Delete Confirmation Modal */}
         <Transition appear show={isDeleteModalOpen} as="div">
           <Dialog

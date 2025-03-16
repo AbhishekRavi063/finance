@@ -95,14 +95,14 @@ export default function Profile() {
   return (
     <div
       className={`min-h-screen text-white  ${
-        isDarkMode ? "bg-gray-900" : "bg-white text-black"
+        isDarkMode ? "bg-gray-800" : "bg-white text-black"
       }`}
     >
       <div className="lg:flex">
         <Sidebar />
         <div
-          className={`lg:w-3/4 w-full p-6 rounded-lg max-w-4xl mx-auto mt-10 lg:mt-15 ${
-            isDarkMode ? "bg-gray-800 text-white" : "bg-gray-300 text-black"
+          className={`lg:w-3/4 w-full p-6 rounded-lg max-w-4xl mx-auto mt-20 lg:mt-15 ${
+            isDarkMode ? "bg-gray-900 text-white" : "bg-gray-300 text-black"
           }`}
         >
           <h1 className="text-2xl font-bold mb-6">Update Profile</h1>

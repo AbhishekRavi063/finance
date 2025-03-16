@@ -130,7 +130,7 @@ export default function Sidebar() {
         {user && (
           <button
             onClick={handleLogout}
-            className="mt-6 bg-red-600 px-4 py-2 rounded-md hover:bg-red-700 transition cursor-pointer"
+            className="mt-6 bg-red-600 px-8 py-2 rounded-md hover:bg-red-700 transition cursor-pointer"
           >
             Logout
           </button>
@@ -150,11 +150,11 @@ export default function Sidebar() {
         className={`md:hidden p-4 rounded-full text-white fixed top-4 left-4 z-50 transition ${
           sidebarOpen
             ? isDarkMode
-              ? "bg-gray-700 hover:bg-gray-600"
-              : "bg-gray-300 hover:bg-gray-400"
+              ? "bg-gray-400 hover:bg-gray-500"
+              : "bg-gray-700 hover:bg-gray-600"
             : isDarkMode
-            ? "bg-gray-800 hover:bg-gray-700"
-            : "bg-blue-800 hover:bg-blue-600"
+            ? "bg-blue-800 hover:bg-blue-600"
+            : "bg-gray-800 hover:bg-gray-700"
         }`}
       >
         <FaBars />

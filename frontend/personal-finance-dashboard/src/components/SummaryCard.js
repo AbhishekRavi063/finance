@@ -10,13 +10,7 @@ export default function SummaryCard({ title, value, percentage, up, down, icon, 
         <h3 className="text-lg font-semibold">{title}</h3>
       </div>
       <p className="text-3xl font-bold mt-2">{value}</p>
-      <p
-        className={`text-sm mt-1 ${
-          up ? "text-green-400" : down ? "text-red-400" : "text-gray-400"
-        }`}
-      >
-        {percentage && `${percentage}%`}
-      </p>
+     
     </div>
   );
 }
