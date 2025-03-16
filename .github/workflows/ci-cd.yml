@@ -1,0 +1,67 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - master  # Trigger on push to the 'master' branch
+  pull_request:
+    branches:
+      - master  # Trigger on PR to 'master' branch
+
+jobs:
+  # Job to run tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+  # Job to deploy frontend (React/Next.js app) to Vercel/Netlify
+  deploy_frontend:
+    needs: test  # Wait until tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy to Vercel
+        run: vercel --prod --token ${{ secrets.VERCEL_TOKEN }}
+
+  # Job to deploy backend (Node.js app) to Render/AWS/Heroku
+  deploy_backend:
+    needs: test  # Wait until tests pass
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Deploy to Render
+        run: render deploy --token ${{ secrets.RENDER_API_TOKEN }}
+
