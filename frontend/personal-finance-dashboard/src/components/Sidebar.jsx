@@ -89,7 +89,10 @@ export default function Sidebar() {
 
         <div className="w-full max-w-xs">
           <h2 className="text-lg font-semibold break-words mt-5">
-            {user?.displayName || "Guest"}
+            {user?.displayName || "Name"}
+          </h2>
+          <h2 className="text-lg font-semibold break-words mt-5">
+            {user?.email || "No Email"}
           </h2>
         </div>
 

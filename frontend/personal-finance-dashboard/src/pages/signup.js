@@ -1,99 +1,129 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '../../lib/supabaseClient'; // ✅ Import Supabase client
+import { auth } from '../../lib/firebase'; // Correct path as confirmed
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import Link from 'next/link';
+import { getAuth, signOut } from 'firebase/auth'; // Import signOut
+import useStore from '../app/store/useStore';  // Import Zustand store for theme management
 
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const router = useRouter();
+  const provider = new GoogleAuthProvider();
 
-  // ✅ Check if user is already logged in
+  const { isDarkMode } = useStore(); // Zustand state for dark mode
+
+  // Check auth state
   useEffect(() => {
-    const checkUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (data.user) {
-        router.push('/dashboard'); // Redirect logged-in users
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Check if the user signed in with Google
+        const isGoogleUser = user.providerData.some(
+          (provider) => provider.providerId === 'google.com'
+        );
+
+        if (isGoogleUser) {
+          router.push('/dashboard'); // ✅ Google users go to the dashboard
+        } else {
+          await signOut(auth); // ✅ Email/Password users are logged out
+          router.push('/'); // ✅ Redirect email/password users to login
+        }
       }
-    };
-    checkUser();
+    });
+
+    return () => unsubscribe();
   }, [router]);
 
-  // ✅ Handle Email Signup
+  // Handle email/password signup
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
-    
-    const { data, error } = await supabase.auth.signUp({ email, password });
-
-    if (error) {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+      // No need to redirect here since useEffect will handle it
+    } catch (error) {
       setError(error.message);
-    } else {
-      console.log("User signed up:", data);
-      router.push('/dashboard');
     }
   };
 
-  // ✅ Handle Google Signup
+  // Handle Google signup
   const handleGoogleSignIn = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-    });
-
-    if (error) {
-      console.error("Google Sign-In Error:", error.message);
-    } else {
-      console.log("Redirecting to Google OAuth...");
+    try {
+      setError(null);
+      await signInWithPopup(auth, provider);
+      // No need to redirect here since useEffect will handle it
+    } catch (error) {
+      setError(error.message);
+      console.error('Google Sign-In Error:', error);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="max-w-md mx-auto p-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Sign Up</h1>
+    <div
+      className={`min-h-screen flex items-center justify-center ${isDarkMode ? 'bg-gray-900' : 'bg-white'}`}
+    >
+      <div className={`max-w-md w-full p-6 rounded-lg shadow-md ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-gray-300 text-black'}`}>
+        <h1 className={`text-3xl font-bold text-center mb-8 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Sign Up
+        </h1>
 
-        {error && <div className="text-red-500 text-sm">{error}</div>}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
+            <label htmlFor="email" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Email
+            </label>
             <input
+              id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className={`mt-1 w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-black border-gray-300'}`}
               placeholder="Enter your email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
+            <label htmlFor="password" className={`block text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              Password
+            </label>
             <input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+              className={`mt-1 w-full px-4 py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-gray-700 text-white border-gray-600' : 'bg-white text-black border-gray-300'}`}
               placeholder="Enter your password"
             />
           </div>
 
-          <button type="submit" className="w-full bg-blue-600 text-white py-2 px-4 rounded-md">
+          {error && (
+            <div className="text-red-500 text-sm">{error}</div>
+          )}
+
+          <button
+            type="submit"
+            className={`w-full py-3 rounded-md cursor-pointer ${isDarkMode ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-blue-500 text-white hover:bg-blue-600'} transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500`}
+          >
             Sign Up with Email
           </button>
         </form>
 
         <button
           onClick={handleGoogleSignIn}
-          className="w-full mt-4 bg-gray-100 text-gray-800 py-2 px-4 rounded-md"
+          className={`w-full cursor-pointer mt-4 py-3 rounded-md ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-200 text-black hover:bg-gray-300'} transition-colors border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500`}
         >
           Sign Up with Google
         </button>
 
-        <p className="mt-2 text-center text-sm">
-          Already have an account? <Link href="/" className="text-blue-600">Login</Link>
+        <p className={`mt-4 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          Already have an account?{' '}
+          <Link href="/" className="text-blue-500 hover:underline cursor-pointer">
+            Login
+          </Link>
         </p>
       </div>
     </div>

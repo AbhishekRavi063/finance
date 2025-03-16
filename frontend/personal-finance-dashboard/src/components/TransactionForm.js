@@ -5,7 +5,12 @@ import useStore from "../app/store/useStore"; // Import Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-export default function TransactionForm({ isOpen, closeModal, fetchTransactions, transaction }) {
+export default function TransactionForm({
+  isOpen,
+  closeModal,
+  fetchTransactions,
+  transaction,
+}) {
   const [formData, setFormData] = useState({
     type: "expense",
     amount: "",
@@ -38,7 +43,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
   function handleCategoryChange(category) {
     if (category === "add_new") {
-      setIsNewCategoryModalOpen(true);
+      setIsNewCategoryModalOpen(true); // Open the modal for new category
     } else if (category !== formData.category) {
       setFormData({ ...formData, category });
     }
@@ -90,7 +95,9 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
     try {
       const response = await fetch(
-        transaction ? `${API_URL}/api/transactions/${transaction.id}` : `${API_URL}/api/transactions`,
+        transaction
+          ? `${API_URL}/api/transactions/${transaction.id}`
+          : `${API_URL}/api/transactions`,
         {
           method: transaction ? "PUT" : "POST",
           headers: { "Content-Type": "application/json" },
@@ -144,9 +151,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
           </Dialog.Title>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium">
-                Transaction Type
-              </label>
+              <label className="block text-sm font-medium">Transaction Type</label>
               <select
                 value={formData.type}
                 onChange={(e) =>
@@ -176,66 +181,52 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                     : "bg-gray-200 text-black border-gray-400"
                 }`}
               />
-              {errors.amount && (
-                <p className="text-red-500 text-sm">{errors.amount}</p>
-              )}
+              {errors.amount && <p className="text-red-500 text-sm">{errors.amount}</p>}
             </div>
 
             <div>
               <label
-                className={`${
-                  isDarkMode ? "text-gray-300" : "text-gray-700"
-                } block`}
+                className={`${isDarkMode ? "text-gray-300" : "text-gray-700"} block`}
               >
                 Category
               </label>
               <div className="relative">
                 <button
                   type="button"
-                  className={` cursor-pointer w-full p-2 rounded border focus:outline-none text-left
-        ${
-          isDarkMode
-            ? "bg-gray-800 text-white border-gray-700"
-            : "bg-gray-200 text-black border-gray-400"
-        }
-      `}
+                  className={`cursor-pointer w-full p-2 rounded border focus:outline-none text-left ${
+                    isDarkMode
+                      ? "bg-gray-800 text-white border-gray-700"
+                      : "bg-gray-200 text-black border-gray-400"
+                  }`}
                   onClick={() => setIsDropdownOpen((prevState) => !prevState)}
                 >
                   {formData.category || "Select category"}
                 </button>
                 {isDropdownOpen && (
                   <div
-                    className={`absolute w-full rounded mt-1 max-h-40 overflow-y-auto z-50 border
-        ${
-          isDarkMode
-            ? "bg-gray-800 border-gray-700"
-            : "bg-white border-gray-300"
-        }
-      `}
+                    className={`absolute w-full rounded mt-1 max-h-40 overflow-y-auto z-50 border ${
+                      isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-300"
+                    }`}
                   >
                     {categories.map((cat, index) => (
                       <div
                         key={index}
-                        className={`p-2 cursor-pointer hover:opacity-80
-              ${
-                isDarkMode
-                  ? "text-white hover:bg-gray-700"
-                  : "text-black hover:bg-gray-300"
-              }
-            `}
+                        className={`p-2 cursor-pointer hover:opacity-80 ${
+                          isDarkMode
+                            ? "text-white hover:bg-gray-700"
+                            : "text-black hover:bg-gray-300"
+                        }`}
                         onClick={() => handleCategoryChange(cat)}
                       >
                         {cat}
                       </div>
                     ))}
                     <div
-                      className={`p-2 cursor-pointer
-            ${
-              isDarkMode
-                ? "text-blue-400 hover:text-blue-300"
-                : "text-blue-600 hover:text-blue-400"
-            }
-          `}
+                      className={`p-2 cursor-pointer ${
+                        isDarkMode
+                          ? "text-blue-400 hover:text-blue-300"
+                          : "text-blue-600 hover:text-blue-400"
+                      }`}
                       onClick={() => handleCategoryChange("add_new")}
                     >
                       + Add New Category
@@ -243,9 +234,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                   </div>
                 )}
               </div>
-              {errors.category && (
-                <p className="text-red-500 text-sm">{errors.category}</p>
-              )}
+              {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium">Description</label>
@@ -261,9 +250,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                     : "bg-gray-200 text-black border-gray-400"
                 }`}
               />
-              {errors.description && (
-                <p className="text-red-500 text-sm">{errors.description}</p>
-              )}
+              {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium">Date</label>
@@ -279,9 +266,7 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                     : "bg-gray-200 text-black border-gray-400"
                 }`}
               />
-              {errors.date && (
-                <p className="text-red-500 text-sm">{errors.date}</p>
-              )}
+              {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
             </div>
             <div className="flex justify-between">
               <button
@@ -294,12 +279,54 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                 type="submit"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
               >
-                {transaction ? "Update" : "Save"}
+                {transaction ? "Update" : "Add"} Transaction
               </button>
             </div>
           </form>
         </div>
       </Dialog>
+
+      {/* New Category Modal */}
+      <Transition show={isNewCategoryModalOpen} as={Fragment}>
+        <Dialog
+          as="div"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+          open={isNewCategoryModalOpen}
+          onClose={() => setIsNewCategoryModalOpen(false)}
+        >
+          <div
+            className={`p-6 rounded-lg shadow-lg w-96 ${
+              isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+            }`}
+          >
+            <Dialog.Title className="text-lg font-bold mb-4">Add New Category</Dialog.Title>
+            <input
+              type="text"
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              className={`w-full p-2 rounded border focus:outline-none ${
+                isDarkMode
+                  ? "bg-gray-800 text-white border-gray-700"
+                  : "bg-gray-200 text-black border-gray-400"
+              }`}
+            />
+            <div className="flex justify-between mt-4">
+              <button
+                onClick={() => setIsNewCategoryModalOpen(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleNewCategorySubmit}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer"
+              >
+                Add Category
+              </button>
+            </div>
+          </div>
+        </Dialog>
+      </Transition>
     </Transition>
   );
 }

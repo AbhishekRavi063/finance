@@ -71,7 +71,7 @@ export default function NetWorthForm({
       <div className="flex justify-end space-x-2">
         <button
           onClick={handleCancel} // ✅ Close the modal
-          className={`px-4 py-2 rounded hover:bg-opacity-80 transition-all duration-300 ${
+          className={`px-4 py-2 rounded hover:bg-opacity-80 transition-all duration-300 cursor-pointer  ${
             isDarkMode ? "bg-gray-600 text-white" : "bg-gray-200 text-black"
           }`}
         >
@@ -79,7 +79,7 @@ export default function NetWorthForm({
         </button>
         <button
           onClick={handleSave}
-          className={`px-4 py-2 rounded hover:bg-opacity-80 transition-all duration-300 ${
+          className={`px-4 py-2 rounded hover:bg-opacity-80 transition-all duration-300 cursor-pointer ${
             isDarkMode ? "bg-green-600 text-white" : "bg-green-500 text-black"
           }`}
         >
