@@ -9,6 +9,7 @@ export default function LoginForm({ onGoogleSignIn }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false); // Track loading state
   const router = useRouter();
 
   const { isDarkMode, setDarkMode } = useStore(); // Zustand state
@@ -19,12 +20,21 @@ export default function LoginForm({ onGoogleSignIn }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(null);
+    setError(null); // Clear previous errors
+    setLoading(true); // Start loading
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/dashboard');
+      router.push('/dashboard'); // Redirect to dashboard on success
     } catch (error) {
-      setError(error.message);
+      setLoading(false); // Stop loading
+
+  
+
+      // Firebase specific error handling
+      if (error.code ) {
+        setError('Invalid email or password.');
+      } 
     }
   };
 
@@ -74,14 +84,16 @@ export default function LoginForm({ onGoogleSignIn }) {
 
           <button
             type="submit"
+            disabled={loading}
             className={`w-full py-3 ${isDarkMode ? 'bg-blue-600 text-white' : 'bg-blue-500 text-white'} rounded-md cursor-pointer`}
           >
-            Login with Email
+            {loading ? 'Logging in...' : 'Login with Email'}
           </button>
         </form>
 
         <button
           onClick={onGoogleSignIn}
+          disabled={loading}
           className={`w-full flex items-center justify-center gap-2 mt-4 py-3 ${isDarkMode ? 'bg-gray-700 text-white hover:bg-gray-600' : 'bg-gray-200 text-black hover:bg-gray-300'} rounded-md cursor-pointer border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors`}
         >
           Login with Google
