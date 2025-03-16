@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect } from "react";
 import { auth } from "../../lib/firebase";
 import Sidebar from "../components/Sidebar";
@@ -9,14 +11,14 @@ import { PieChart, Pie, Cell } from "recharts";
 import { useRouter } from 'next/router';
 import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi";
 import { fetchTransactions } from "../app/utils/transactionaspi";
-import useStore from '../app/store/useStore';  // Import the Zustand store
+import useStore from '../app/store/useStore';  // Import Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Dashboard() {
   const {
     user, assets, liabilities, transactions, selectedMonth, selectedCategory,
-    setUser, setAssets, setLiabilities, setTransactions, setSelectedMonth, setSelectedCategory
+    setUser, setAssets, setLiabilities, setTransactions, setSelectedMonth, setSelectedCategory, isDarkMode, setDarkMode
   } = useStore();  // Using Zustand state and actions
 
   const router = useRouter();
@@ -25,12 +27,12 @@ export default function Dashboard() {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         setUser(user);
-        
+
         // Fetch data using helper functions
         setAssets(await fetchAssets(user.uid));
         setLiabilities(await fetchLiabilities(user.uid));
         console.log("🔥 Logged-in User UID:", user.uid); // Debugging
-        
+
         try {
           const transactionData = await fetchTransactions(user.uid);
           setTransactions(transactionData);
@@ -100,12 +102,28 @@ export default function Dashboard() {
     return { name: category, value: totalCategoryIncome };
   });
 
+  const toggleDarkMode = () => {
+    setDarkMode(!isDarkMode);  // Toggle between true and false
+  };
+
   return (
-    <div className="flex min-h-screen bg-gray-900 text-white mt-10">
+    <div
+      className={`flex min-h-screen transition-all duration-300 ${
+        isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+      }  `}
+    >
       <Sidebar />
-      <main className="flex-1 p-8">
-        <h1 className="text-3xl font-semibold">Dashboard</h1>
-        <p className="text-gray-400">Your financial overview</p>
+      <main
+        className={`flex-1 p-8 transition-all duration-300 pt-20 ${
+          isDarkMode ? "bg-gray-800" : "bg-gray-300"
+        }`}
+      >
+        <h1 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>Dashboard</h1>
+        <p className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>Your financial overview</p>
 
         <DashboardHeader />
 
@@ -117,7 +135,9 @@ export default function Dashboard() {
             </label>
             <select
               id="month"
-              className="p-2 border rounded bg-gray-800 text-white mt-4 cursor-pointer"
+              className={`p-2 border rounded transition-all duration-300 ${
+                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+              } mt-4 cursor-pointer`}
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
             >
@@ -136,7 +156,9 @@ export default function Dashboard() {
             </label>
             <select
               id="category"
-              className="p-2 border rounded bg-gray-800 text-white mt-4 cursor-pointer"
+              className={`p-2 border rounded transition-all duration-300 ${
+                isDarkMode ? "bg-gray-800 text-white" : "bg-white text-black"
+              } mt-4 cursor-pointer`}
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
             >
@@ -155,7 +177,8 @@ export default function Dashboard() {
             value={`₹${totalIncome}`}
             percentage="12%"
             up
-            icon={<FaArrowUp className="text-green-400" />}
+            icon={<FaArrowUp className="text-green-400 " />}
+            isDarkMode={isDarkMode}
           />
           <SummaryCard
             title="Total Expenses"
@@ -163,6 +186,7 @@ export default function Dashboard() {
             percentage="8%"
             down
             icon={<FaArrowDown className="text-red-400" />}
+            isDarkMode={isDarkMode}
           />
           <SummaryCard
             title="Net Worth"
@@ -170,19 +194,33 @@ export default function Dashboard() {
             percentage="7%"
             up
             icon={<FaBalanceScale className="text-blue-400" />}
+            isDarkMode={isDarkMode}
           />
         </div>
 
-        {/* Income vs Expenses (Last 6 Months) */}
-        <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-6">
+        {/* Income vs Expenses Chart */}
+        <div
+          className={`mt-6 p-6 rounded-md shadow-lg border transition-all duration-300 ${
+            isDarkMode
+              ? "border-gray-600 bg-gray-900"
+              : "border-gray-300 bg-gray-100"
+          }`}
+        >
+          <h2
+            className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}
+          >
             Income vs. Expenses (Last 6 Months)
           </h2>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={incomeExpensesData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" stroke="#ddd" />
-              <YAxis stroke="#ddd" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={isDarkMode ? "#444" : "#ccc"}
+              />
+              <XAxis dataKey="month" stroke={isDarkMode ? "#ddd" : "#333"} />
+              <YAxis stroke={isDarkMode ? "#ddd" : "#333"} />
               <Tooltip />
               <Legend />
               <Bar dataKey="income" fill="#22c55e" />
@@ -191,62 +229,75 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Expense and Income Breakdown by Category */}
-        <div className="mt-6 bg-gray-800 p-6 rounded-md">
-          <h2 className="text-xl font-semibold mb-6">
-            Expense and Income Breakdown by Category
+        {/* Expense Breakdown Chart */}
+        <div
+          className={`mt-6 p-6 rounded-md shadow-lg border transition-all duration-300 ${
+            isDarkMode
+              ? "border-gray-600 bg-gray-900"
+              : "border-gray-300 bg-gray-100"
+          }`}
+        >
+          <h2 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+            Expense Breakdown by Category
           </h2>
-          <div className="flex flex-wrap md:flex-nowrap justify-between space-x-4">
-            {/* Expense Breakdown */}
-            <div className="w-full md:w-1/2 mb-6">
-              <h3 className="text-lg font-semibold mb-2">Expense Breakdown</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryExpenseData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                  >
-                    {categoryExpenseData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={categoryExpenseData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                label
+              >
+                {categoryExpenseData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
 
-            {/* Income Breakdown */}
-            <div className="w-full md:w-1/2">
-              <h3 className="text-lg font-semibold mb-2">Income Breakdown</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={categoryIncomeData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                  >
-                    {categoryIncomeData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        {/* Income Breakdown by Category */}
+        <div
+          className={`mt-6 p-6 rounded-md shadow-lg border transition-all duration-300 ${
+            isDarkMode
+              ? "border-gray-600 bg-gray-900"
+              : "border-gray-300 bg-gray-100"
+          }`}
+        >
+          <h2 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+              isDarkMode ? "text-white" : "text-gray-900"
+            }`}>
+            Income Breakdown by Category
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={categoryIncomeData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                fill="#22c55e"
+                label
+              >
+                {categoryIncomeData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </main>
     </div>

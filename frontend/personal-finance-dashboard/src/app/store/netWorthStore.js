@@ -25,4 +25,6 @@ export const useNetWorthStore = create((set) => ({
   setViewModalOpen: (open) => set({ viewModalOpen: open }),
   viewItem: null,
   setViewItem: (item) => set({ viewItem: item }),
+  closeModal: () => set({ modalOpen: false }), // ✅ Add this function
+
 }));

@@ -10,6 +10,8 @@ import { useRouter } from "next/router";
 import Sidebar from "@/components/Sidebar";
 import Snackbar from "@mui/material/Snackbar";  // Material UI Snackbar for pop-up
 import MuiAlert from "@mui/material/Alert";  // Material UI Alert for success message
+import useStore from '../app/store/useStore';  // Import Zustand store
+
 
 export default function Profile() {
   const [user, setUser] = useState(null);
@@ -21,6 +23,13 @@ export default function Profile() {
   const [isSnackbarOpen, setIsSnackbarOpen] = useState(false); // Snackbar state for success message
   const [modalMessage, setModalMessage] = useState("");
   const router = useRouter();
+
+  const { isDarkMode, setDarkMode } = useStore(); // Zustand state
+
+  const toggleDarkMode = () => {
+    setDarkMode(!isDarkMode); // Toggle between true (dark mode) and false (light mode)
+  };
+
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -84,17 +93,28 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white mt-10">
+    <div
+      className={`min-h-screen text-white  ${
+        isDarkMode ? "bg-gray-900" : "bg-white text-black"
+      }`}
+    >
       <div className="lg:flex">
         <Sidebar />
-        <div className="lg:w-3/4 w-full p-6 bg-gray-800 rounded-lg max-w-4xl mx-auto mt-10 lg:mt-0">
+        <div
+          className={`lg:w-3/4 w-full p-6 rounded-lg max-w-4xl mx-auto mt-10 lg:mt-15 ${
+            isDarkMode ? "bg-gray-800 text-white" : "bg-gray-300 text-black"
+          }`}
+        >
           <h1 className="text-2xl font-bold mb-6">Update Profile</h1>
 
           {error && <div className="text-red-500 mb-4">{error}</div>}
 
           <form onSubmit={handleUpdateProfile} className="space-y-6">
             <div className="mb-4">
-              <label htmlFor="displayName" className="block text-sm font-medium">
+              <label
+                htmlFor="displayName"
+                className="block text-sm font-medium"
+              >
                 Display Name
               </label>
               <input
@@ -102,7 +122,11 @@ export default function Profile() {
                 id="displayName"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="mt-1 p-3 w-full bg-gray-700 text-white rounded-md"
+                className={`mt-1 p-3 w-full rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-white text-black border-gray-300 border"
+                }`}
                 placeholder="Enter your display name"
               />
             </div>
@@ -116,13 +140,20 @@ export default function Profile() {
                 id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 p-3 w-full bg-gray-700 text-white rounded-md"
+                className={`mt-1 p-3 w-full rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-white text-black border-gray-300 border"
+                }`}
                 disabled
               />
             </div>
 
             <div className="mb-4">
-              <label htmlFor="currentPassword" className="block text-sm font-medium">
+              <label
+                htmlFor="currentPassword"
+                className="block text-sm font-medium"
+              >
                 Current Password
               </label>
               <input
@@ -130,13 +161,20 @@ export default function Profile() {
                 id="currentPassword"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="mt-1 p-3 w-full bg-gray-700 text-white rounded-md"
+                className={`mt-1 p-3 w-full rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-white text-black border-gray-300 border"
+                }`}
                 placeholder="Enter your current password"
               />
             </div>
 
             <div className="mb-4">
-              <label htmlFor="newPassword" className="block text-sm font-medium">
+              <label
+                htmlFor="newPassword"
+                className="block text-sm font-medium"
+              >
                 New Password
               </label>
               <input
@@ -144,7 +182,11 @@ export default function Profile() {
                 id="newPassword"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1 p-3 w-full bg-gray-700 text-white rounded-md"
+                className={`mt-1 p-3 w-full rounded-md ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-white text-black border-gray-300 border"
+                }`}
                 placeholder="Enter a new password (optional)"
               />
             </div>
@@ -161,7 +203,6 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Success Snackbar for Profile Update */}
       <Snackbar
         open={isSnackbarOpen}
         autoHideDuration={3000}

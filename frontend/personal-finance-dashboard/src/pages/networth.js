@@ -2,12 +2,18 @@ import { useEffect, useState } from "react";
 import StatCard from "@/components/StatCard";
 import Sidebar from "@/components/Sidebar";
 import { auth } from "../../lib/firebase";
+import SummaryCard from "../components/SummaryCard";
 import { Dialog, Transition } from "@headlessui/react";
 import { FaTrash, FaEdit, FaPlus, FaSearch, FaEye } from "react-icons/fa";
-import { fetchAssets, fetchLiabilities, deleteItem, saveItem } from "../app/utils/assetsandliabilitiesapi";
+import {
+  fetchAssets,
+  fetchLiabilities,
+  deleteItem,
+  saveItem,
+} from "../app/utils/assetsandliabilitiesapi";
 import { useNetWorthStore } from "../app/store/netWorthStore"; // Import Zustand store
-import NetWorthForm from "@/components/NetWorthForm"; // Import the new form component
-
+import NetWorthForm from "../components/NetWorthForm"; // Import the new form component
+import useStore from "../app/store/useStore"; // Import Zustand store
 
 export default function NetWorth() {
   const {
@@ -32,8 +38,14 @@ export default function NetWorth() {
     setViewItem, // For view modal
     viewItem, // To store the item to view
     viewModalOpen,
-   setViewModalOpen,
+    setViewModalOpen,
   } = useNetWorthStore();
+
+  const { isDarkMode, setDarkMode } = useStore(); // Zustand state
+
+  const toggleDarkMode = () => {
+    setDarkMode(!isDarkMode); // Toggle between true (dark mode) and false (light mode)
+  };
 
   const [errors, setErrors] = useState({});
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,33 +125,39 @@ export default function NetWorth() {
   // View Item Modal functionality
   function openViewModal(item) {
     setViewModalOpen(true);
-    setViewItem(item);  // Set the item to display in the view modal
+    setViewItem(item); // Set the item to display in the view modal
   }
 
   function closeViewModal() {
     setViewModalOpen(false);
-    setViewItem(null);  // Clear the selected item
+    setViewItem(null); // Clear the selected item
   }
   // The View Modal functions
-function openViewModal(item) {
-  setViewModalOpen(true);
-  setViewItem(item);  // Set the item to display in the view modal
-}
+  function openViewModal(item) {
+    setViewModalOpen(true);
+    setViewItem(item); // Set the item to display in the view modal
+  }
 
-function closeViewModal() {
-  setViewModalOpen(false);
-  setViewItem(null);  // Clear the selected item
-}
+  function closeViewModal() {
+    setViewModalOpen(false);
+    setViewItem(null); // Clear the selected item
+  }
 
-  const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
+  const totalAssets = assets.reduce(
+    (sum, asset) => sum + (asset.value || 0),
+    0
+  );
+  const totalLiabilities = liabilities.reduce(
+    (sum, liability) => sum + (liability.amount || 0),
+    0
+  );
   const netWorth = totalAssets - totalLiabilities;
 
   // Filtered assets and liabilities based on the search query
-  const filteredAssets = assets.filter(asset =>
+  const filteredAssets = assets.filter((asset) =>
     asset.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const filteredLiabilities = liabilities.filter(liability =>
+  const filteredLiabilities = liabilities.filter((liability) =>
     liability.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -150,12 +168,31 @@ function closeViewModal() {
   const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
 
   return (
-    <div className="flex flex-col lg:flex-row mt-10">
+    <div
+      className={`flex min-h-screen transition-all duration-300 ${
+        isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+      }  `}
+    >
       <Sidebar />
-      <main className="flex-1 p-6 bg-gray-900 text-white">
-        <h1 className="text-3xl font-bold">Net Worth</h1>
-        <p className="text-gray-400">Track your assets and liabilities</p>
-
+      <main
+        className={`flex-1 p-8 transition-all duration-300 pt-20 ${
+          isDarkMode ? "bg-gray-800" : "bg-gray-300"
+        }`}
+      >
+        <h1
+          className={`text-3xl font-bold mb-6 transition-all duration-300 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Net Worth
+        </h1>
+        <p
+          className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Track your assets and liabilities
+        </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
           <StatCard
             title="Total Assets"
@@ -173,23 +210,36 @@ function closeViewModal() {
             color="text-blue-500"
           />
         </div>
-
-        <div className="mt-6 p-6 bg-gray-800 rounded-lg shadow-md">
+        <div
+          className={`mt-6 p-6  rounded-lg shadow-md transition-all duration-300 ${
+            isDarkMode ? "bg-gray-900" : "bg-white"
+          }`}
+        >
           <div className="flex justify-between items-center">
             <div className="flex justify-center gap-4 mt-4 flex-wrap">
               <button
                 onClick={() => openModal("asset")}
-                className="bg-green-600 px-4 py-2 rounded-md cursor-pointer hover:bg-green-700 flex items-center gap-2"
+                className={`px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 transition-all duration-300 ${
+                  isDarkMode
+                    ? "bg-green-700 hover:bg-green-800 text-white"
+                    : "bg-green-600 hover:bg-green-700 text-white"
+                }`}
               >
                 <FaPlus /> Add Asset
               </button>
+
               <button
                 onClick={() => openModal("liability")}
-                className="bg-red-600 px-4 py-2 cursor-pointer rounded-md hover:bg-red-700 flex items-center gap-2"
+                className={`px-4 py-2 rounded-md cursor-pointer flex items-center gap-2 transition-all duration-300 ${
+                  isDarkMode
+                    ? "bg-red-700 hover:bg-red-800 text-white"
+                    : "bg-red-600 hover:bg-red-700 text-white"
+                }`}
               >
                 <FaPlus /> Add Liability
               </button>
             </div>
+
             <div className="flex items-center space-x-2">
               <FaSearch className="text-gray-400" />
               <input
@@ -197,19 +247,34 @@ function closeViewModal() {
                 placeholder="Search.."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-gray-700 p-2 rounded-md text-white"
+                className={` p-2 rounded-md text-white transition-all duration-300 ${
+                  isDarkMode ? "bg-gray-800" : "bg-gray-300"
+                }`}
               />
             </div>
           </div>
 
-          <h3 className="text-gray-400 font-semibold text-lg mt-6">
+          <h3
+            className={`text-lg font-semibold mt-6 p-2 rounded-md  transition-all duration-300 ${
+              isDarkMode ? "text-gray-200" : "text-gray-700"
+            }`}
+          >
             Breakdown
           </h3>
-
           <div className="overflow-x-auto mt-4">
-            <table className="w-full border-collapse border border-gray-700">
+            <table
+              className={`w-full border-collapse border transition-all duration-300 ${
+                isDarkMode ? "border-gray-700" : "border-gray-300"
+              }`}
+            >
               <thead>
-                <tr className="bg-gray-900 text-gray-300">
+                <tr
+                  className={`transition-all duration-300${
+                    isDarkMode
+                      ? "bg-gray-900 text-gray-300"
+                      : "bg-gray-200 text-gray-700"
+                  }`}
+                >
                   <th className="p-3 text-left">Type</th>
                   <th className="p-3 text-left">Description</th>
                   <th className="p-3 text-left">Value</th>
@@ -217,18 +282,28 @@ function closeViewModal() {
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((item) => (
+                {currentItems.map((item, index) => (
                   <tr
                     key={item.id}
-                    className="bg-gray-700 border-b border-gray-800"
+                    className={`border-b transition-all duration-300 ${
+                      isDarkMode
+                        ? `border-gray-800 ${
+                            index % 2 === 0 ? "bg-gray-800" : "bg-gray-900"
+                          } hover:bg-gray-700 text-gray-300`
+                        : `border-gray-300 ${
+                            index % 2 === 0 ? "bg-gray-200" : "bg-gray-100"
+                          } hover:bg-gray-300 text-gray-800`
+                    }`}
                   >
                     <td className="p-3 text-left">
                       {item.type === "asset" ? "Asset" : "Liability"}
                     </td>
-                    <td className="p-3 text-left">
-                      {item.description.length > 30
-                        ? item.description.slice(0, 15) + "..."
-                        : item.description}
+                    <td className="p-3 text-left truncate max-w-[200px] overflow-hidden">
+                      <span title={item.description}>
+                        {item.description.length > 30
+                          ? item.description.slice(0, 15) + "..."
+                          : item.description}
+                      </span>
                     </td>
 
                     <td
@@ -240,28 +315,40 @@ function closeViewModal() {
                     >
                       ₹{item.value || item.amount}
                     </td>
-                    <td className="p-3 flex justify-center space-x-3">
 
-                    <button
+                    <td className="p-3 flex justify-center space-x-3">
+                      <button
                         onClick={() => openViewModal(item)}
-                        className="text-blue-400 hover:text-blue-300 cursor-pointer"
+                        className={`cursor-pointer transition-all duration-300 ${
+                          isDarkMode
+                            ? "text-blue-400 hover:text-blue-300"
+                            : "text-blue-600 hover:text-blue-500"
+                        }`}
                       >
                         <FaEye />
                       </button>
 
                       <button
                         onClick={() => openModal(item.type, item)}
-                        className="text-yellow-400 hover:text-yellow-300 cursor-pointer"
+                        className={`cursor-pointer transition-all duration-300 ${
+                          isDarkMode
+                            ? "text-yellow-400 hover:text-yellow-300"
+                            : "text-yellow-600 hover:text-yellow-500"
+                        }`}
                       >
                         <FaEdit />
                       </button>
+
                       <button
                         onClick={() => openDeleteModal(item)}
-                        className="text-red-400 hover:text-red-300 cursor-pointer"
+                        className={`cursor-pointer transition-all duration-300 ${
+                          isDarkMode
+                            ? "text-red-400 hover:text-red-300"
+                            : "text-red-600 hover:text-red-500"
+                        }`}
                       >
                         <FaTrash />
                       </button>
-                     
                     </td>
                   </tr>
                 ))}
@@ -271,14 +358,23 @@ function closeViewModal() {
 
           {/* Rows per page dropdown */}
           <div className="flex justify-end mt-4">
-            <label htmlFor="rows-per-page" className="text-white mr-2">
+            <label
+              htmlFor="rows-per-page"
+              className={`mr-2 ${
+                isDarkMode ? "text-gray-300" : "text-gray-700"
+              }`}
+            >
               Rows per page:
             </label>
             <select
               id="rows-per-page"
               value={rowsPerPage}
               onChange={(e) => setRowsPerPage(Number(e.target.value))}
-              className="bg-gray-700 text-white px-3 py-1 rounded-md"
+              className={`px-3 cursor-pointer py-1 rounded-md transition-all duration-300 ${
+                isDarkMode
+                  ? "bg-gray-700 text-white"
+                  : "bg-gray-200 text-gray-800"
+              }`}
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -291,24 +387,50 @@ function closeViewModal() {
           <div className="flex justify-between items-center mt-4">
             <button
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+              className={`px-4 py-2 rounded-md transition-all duration-300 cursor-pointer ${
+                isDarkMode
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
+                  : "bg-gray-300 text-gray-800 hover:bg-gray-400"
+              }`}
             >
               Previous
             </button>
-            <div className="text-white">
+
+            <div className={isDarkMode ? "text-gray-300" : "text-gray-800"}>
               Page {currentPage} of {totalPages}
             </div>
+
             <button
               onClick={() =>
                 setCurrentPage(Math.min(totalPages, currentPage + 1))
               }
-              className="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-500"
+              className={`px-4 py-2 rounded-md transition-all duration-300 cursor-pointer ${
+                isDarkMode
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
+                  : "bg-gray-300 text-gray-800 hover:bg-gray-400"
+              }`}
             >
               Next
             </button>
           </div>
         </div>
-
+        {/* Add/Edit Modal */}
+        <Transition appear show={modalOpen} as="div">
+          <Dialog
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            open={modalOpen}
+            onClose={closeModal}
+          >
+            <NetWorthForm
+              editingItem={editingItem}
+              itemType={itemType}
+              errors={errors}
+              handleSave={handleSave}
+              setEditingItem={setEditingItem}
+            />
+          </Dialog>
+        </Transition>
+      
         {/* View Item Modal */}
         <Transition appear show={viewModalOpen} as="div">
           <Dialog
@@ -316,31 +438,45 @@ function closeViewModal() {
             open={viewModalOpen}
             onClose={closeViewModal}
           >
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
-              <Dialog.Title className="text-lg font-bold text-white mb-4 ">
+            <div
+              className={`p-6 rounded-lg shadow-lg w-full sm:w-96 ${
+                isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+              }`}
+            >
+              <Dialog.Title className="text-lg font-bold mb-4">
                 {viewItem ? viewItem.description : "View Item"}
               </Dialog.Title>
-              <div className="text-white mb-4 space-y-5">
+              <div
+                className={`mb-4 space-y-5 ${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                }`}
+              >
                 <p>
-                  <strong>Type:</strong> {viewItem?.type === "asset" ? "Asset" : "Liability"}
+                  <strong>Type:</strong>{" "}
+                  {viewItem?.type === "asset" ? "Asset" : "Liability"}
                 </p>
                 <p>
                   <strong>Description:</strong> {viewItem?.description}
                 </p>
                 <p>
-                  <strong>Value/Amount:</strong> ${viewItem?.value || viewItem?.amount}
+                  <strong>Value/Amount:</strong> $
+                  {viewItem?.value || viewItem?.amount}
                 </p>
               </div>
               <button
                 onClick={closeViewModal}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
+                className={`px-4 py-2 rounded hover:opacity-80 cursor-pointer ${
+                  isDarkMode
+                    ? "bg-gray-700 text-white"
+                    : "bg-gray-300 text-black"
+                }`}
               >
                 Close
               </button>
             </div>
           </Dialog>
         </Transition>
-
+        
         {/* Delete Confirmation Modal */}
         <Transition appear show={isDeleteModalOpen} as="div">
           <Dialog
@@ -348,20 +484,28 @@ function closeViewModal() {
             open={isDeleteModalOpen}
             onClose={closeDeleteModal}
           >
-            <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-full sm:w-96">
-              <Dialog.Title className="text-lg font-bold text-white mb-4">
+            <div
+              className={`p-6 rounded-lg shadow-lg w-full sm:w-96 ${
+                isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+              }`}
+            >
+              <Dialog.Title className="text-lg font-bold mb-4">
                 Are you sure you want to delete this item?
               </Dialog.Title>
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+                  className={`px-4 py-2 rounded hover:opacity-80 cursor-pointer ${
+                    isDarkMode
+                      ? "bg-gray-700 text-white"
+                      : "bg-gray-300 text-black"
+                  }`}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 cursor-pointer"
                 >
                   Delete
                 </button>

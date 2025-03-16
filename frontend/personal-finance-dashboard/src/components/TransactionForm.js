@@ -1,6 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { auth } from "../../lib/firebase";
+import useStore from "../app/store/useStore"; // Import Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -18,6 +19,8 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [errors, setErrors] = useState({});
+
+  const { isDarkMode } = useStore(); // Zustand state
 
   useEffect(() => {
     if (transaction) {
@@ -125,56 +128,114 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isOpen} onClose={closeModal}>
-        <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
-          <Dialog.Title className="text-lg font-bold text-white mb-4">
+      <Dialog
+        as="div"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        open={isOpen}
+        onClose={closeModal}
+      >
+        <div
+          className={`p-6 rounded-lg shadow-lg w-96 ${
+            isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
+          }`}
+        >
+          <Dialog.Title className="text-lg font-bold mb-4">
             {transaction ? "Edit Transaction" : "Add New Transaction"}
           </Dialog.Title>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-gray-400">Transaction Type</label>
+              <label className="block text-sm font-medium">
+                Transaction Type
+              </label>
               <select
                 value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
+                onChange={(e) =>
+                  setFormData({ ...formData, type: e.target.value })
+                }
+                className={`w-full p-2 rounded border focus:outline-none ${
+                  isDarkMode
+                    ? "bg-gray-800 text-white border-gray-700"
+                    : "bg-gray-200 text-black border-gray-400"
+                }`}
               >
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
               </select>
             </div>
             <div>
-              <label className="block text-gray-400">Amount</label>
+              <label className="block text-sm font-medium">Amount</label>
               <input
                 type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
+                onChange={(e) =>
+                  setFormData({ ...formData, amount: e.target.value })
+                }
+                className={`w-full p-2 rounded border focus:outline-none ${
+                  isDarkMode
+                    ? "bg-gray-800 text-white border-gray-700"
+                    : "bg-gray-200 text-black border-gray-400"
+                }`}
               />
-              {errors.amount && <p className="text-red-500 text-sm">{errors.amount}</p>}
+              {errors.amount && (
+                <p className="text-red-500 text-sm">{errors.amount}</p>
+              )}
             </div>
+
             <div>
-              <label className="block text-gray-400">Category</label>
+              <label
+                className={`${
+                  isDarkMode ? "text-gray-300" : "text-gray-700"
+                } block`}
+              >
+                Category
+              </label>
               <div className="relative">
                 <button
                   type="button"
-                  className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none text-left"
-                  onClick={() => setIsDropdownOpen((prevState) => !prevState)} 
+                  className={` cursor-pointer w-full p-2 rounded border focus:outline-none text-left
+        ${
+          isDarkMode
+            ? "bg-gray-800 text-white border-gray-700"
+            : "bg-gray-200 text-black border-gray-400"
+        }
+      `}
+                  onClick={() => setIsDropdownOpen((prevState) => !prevState)}
                 >
                   {formData.category || "Select category"}
                 </button>
                 {isDropdownOpen && (
-                  <div className="absolute w-full bg-gray-800 border border-gray-700 rounded mt-1 max-h-40 overflow-y-auto z-50">
+                  <div
+                    className={`absolute w-full rounded mt-1 max-h-40 overflow-y-auto z-50 border
+        ${
+          isDarkMode
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-300"
+        }
+      `}
+                  >
                     {categories.map((cat, index) => (
                       <div
                         key={index}
-                        className="p-2 hover:bg-gray-700 text-white cursor-pointer"
+                        className={`p-2 cursor-pointer hover:opacity-80
+              ${
+                isDarkMode
+                  ? "text-white hover:bg-gray-700"
+                  : "text-black hover:bg-gray-300"
+              }
+            `}
                         onClick={() => handleCategoryChange(cat)}
                       >
                         {cat}
                       </div>
                     ))}
                     <div
-                      className="p-2 text-blue-400 cursor-pointer hover:text-blue-300"
+                      className={`p-2 cursor-pointer
+            ${
+              isDarkMode
+                ? "text-blue-400 hover:text-blue-300"
+                : "text-blue-600 hover:text-blue-400"
+            }
+          `}
                       onClick={() => handleCategoryChange("add_new")}
                     >
                       + Add New Category
@@ -182,33 +243,50 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
                   </div>
                 )}
               </div>
-              {errors.category && <p className="text-red-500 text-sm">{errors.category}</p>}
+              {errors.category && (
+                <p className="text-red-500 text-sm">{errors.category}</p>
+              )}
             </div>
             <div>
-              <label className="block text-gray-400">Description</label>
+              <label className="block text-sm font-medium">Description</label>
               <input
                 type="text"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
+                className={`w-full p-2 rounded border focus:outline-none ${
+                  isDarkMode
+                    ? "bg-gray-800 text-white border-gray-700"
+                    : "bg-gray-200 text-black border-gray-400"
+                }`}
               />
-              {errors.description && <p className="text-red-500 text-sm">{errors.description}</p>}
+              {errors.description && (
+                <p className="text-red-500 text-sm">{errors.description}</p>
+              )}
             </div>
             <div>
-              <label className="block text-gray-400">Date</label>
+              <label className="block text-sm font-medium">Date</label>
               <input
                 type="date"
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
+                onChange={(e) =>
+                  setFormData({ ...formData, date: e.target.value })
+                }
+                className={`w-full p-2 rounded border focus:outline-none ${
+                  isDarkMode
+                    ? "bg-gray-800 text-white border-gray-700"
+                    : "bg-gray-200 text-black border-gray-400"
+                }`}
               />
-              {errors.date && <p className="text-red-500 text-sm">{errors.date}</p>}
+              {errors.date && (
+                <p className="text-red-500 text-sm">{errors.date}</p>
+              )}
             </div>
             <div className="flex justify-between">
               <button
-                type="button"
                 onClick={closeModal}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
+                className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 cursor-pointer"
               >
                 Cancel
               </button>
@@ -222,37 +300,6 @@ export default function TransactionForm({ isOpen, closeModal, fetchTransactions,
           </form>
         </div>
       </Dialog>
-
-      <Transition appear show={isNewCategoryModalOpen} as={Fragment}>
-        <Dialog as="div" className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" open={isNewCategoryModalOpen} onClose={() => setIsNewCategoryModalOpen(false)}>
-          <div className="bg-gray-900 p-6 rounded-lg shadow-lg w-96">
-            <Dialog.Title className="text-lg font-bold text-white mb-4">
-              Add New Category
-            </Dialog.Title>
-            <input
-              type="text"
-              value={newCategory}
-              onChange={(e) => setNewCategory(e.target.value)}
-              className="w-full p-2 bg-gray-800 text-white rounded border border-gray-700 focus:outline-none"
-              placeholder="Enter new category name"
-            />
-            <div className="flex justify-between mt-4">
-              <button
-                onClick={() => setIsNewCategoryModalOpen(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleNewCategorySubmit}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 cursor-pointer"
-              >
-                Add Category
-              </button>
-            </div>
-          </div>
-        </Dialog>
-      </Transition>
     </Transition>
   );
 }
