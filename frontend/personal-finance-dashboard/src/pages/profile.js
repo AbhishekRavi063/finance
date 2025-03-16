@@ -101,7 +101,7 @@ export default function Profile() {
       <div className="lg:flex">
         <Sidebar />
         <div
-          className={`lg:w-3/4 w-full p-6 rounded-lg max-w-4xl mx-auto mt-20 lg:mt-15 ${
+          className={` w-full p-6 rounded-lg max-w-4xl mx-auto mt-20 lg:mt-15 ${
             isDarkMode ? "bg-gray-900 text-white" : "bg-gray-300 text-black"
           }`}
         >
