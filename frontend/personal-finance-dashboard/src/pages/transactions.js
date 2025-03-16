@@ -399,7 +399,7 @@ export default function Transactions() {
 
             <div
               className={`text-gray-800 ${
-                isDarkMode ? "text-gray-300" : ""
+                isDarkMode ? "text-white" : ""
               } text-sm md:text-base`}
             >
               Page {currentPage} of {totalPages}
