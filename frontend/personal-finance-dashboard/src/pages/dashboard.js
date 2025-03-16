@@ -165,11 +165,15 @@ export default function Dashboard() {
 
   return (
     <div
-      className={`flex min-h-screen transition-all duration-300 ${
+      className={` min-h-screen transition-all duration-300 ${
         isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
       }  `}
     >
+
+    <div className="lg:flex">
+
       <Sidebar />
+
       <main
         className={`flex-1 p-8 transition-all duration-300 pt-20 ${
           isDarkMode ? "bg-gray-800" : "bg-gray-300"
@@ -369,6 +373,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </div>
       </main>
+      </div>
     </div>
   );
 }

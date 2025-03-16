@@ -169,7 +169,7 @@ export default function NetWorth() {
 
   return (
     <div
-      className={`flex min-h-screen transition-all duration-300 ${
+      className={` min-h-screen transition-all duration-300 ${
         isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
       }  `}
     >
