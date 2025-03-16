@@ -15,9 +15,9 @@ export default function Home() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
-        router.push('/dashboard'); // Redirect only if user is authenticated
+        router.replace('/dashboard'); // Use replace to prevent going back to Home after redirect
       } else {
-        setUser(null); // Ensure state is cleared when not authenticated
+        setUser(null);
       }
       setLoading(false);
     });
@@ -25,19 +25,11 @@ export default function Home() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleGoogleSignIn = async () => {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('Google Sign-In Error:', error);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
         <CircularProgress size={50} />
-        <p className="mt-4 text-gray-700 font-medium">Loading, please wait...</p>
+        <p className="mt-4 text-gray-700 font-medium">Checking authentication...</p>
       </div>
     );
   }
@@ -47,7 +39,7 @@ export default function Home() {
       {user ? (
         <p>Redirecting to Dashboard...</p>
       ) : (
-        <LoginForm onGoogleSignIn={handleGoogleSignIn} />
+        <LoginForm onGoogleSignIn={() => signInWithPopup(auth, provider)} />
       )}
     </div>
   );
