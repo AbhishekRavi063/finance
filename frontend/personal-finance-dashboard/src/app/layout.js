@@ -1,3 +1,5 @@
+import Sidebar from "./sidebar";
+
 export default function Layout({ children }) {
   return (
     <div className="flex min-h-screen bg-darkBg ">

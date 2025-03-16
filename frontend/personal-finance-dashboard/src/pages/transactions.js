@@ -56,7 +56,7 @@ export default function Transactions() {
       if (user) fetchUserTransactions(user.uid); // Use the new fetchTransactions function
     });
     return () => unsubscribe();
-  }, []);
+  }, [fetchUserTransactions]);
 
   async function fetchUserTransactions(userId) {
     const data = await fetchTransactions(userId);

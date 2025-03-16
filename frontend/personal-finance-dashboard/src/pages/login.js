@@ -100,7 +100,7 @@ export default function LoginForm({ onGoogleSignIn }) {
         </button>
 
         <p className={`mt-2 text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-          Don't have an account?{' '}
+          Don&apos;re t have an account?{' '}
           <Link href="/signup" className="text-blue-400 hover:underline">
             Sign up
           </Link>
