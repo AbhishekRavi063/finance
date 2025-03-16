@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useAuth } from "@/context/AuthContext"; // Import authentication hook
 import Sidebar from "./Sidebar";
@@ -7,16 +7,19 @@ import { CircularProgress } from "@mui/material";
 export default function Layout({ children }) {
   const { user, loading } = useAuth(); // Get the user and loading state
   const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
-    // Redirect to login if user is not authenticated and not loading
-    if (!loading && !user) {
-      router.push("/login");
+    if (!loading) {
+      if (!user) {
+        router.replace("/login"); // Prevent back navigation to protected pages
+      }
+      setIsCheckingAuth(false);
     }
   }, [user, loading, router]);
 
-  // Show a loading screen while checking authentication
-  if (loading) {
+  // Show loading spinner until authentication is checked
+  if (loading || isCheckingAuth) {
     return (
       <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
         <CircularProgress size={50} className="animate-spin text-blue-500" />
