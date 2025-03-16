@@ -414,7 +414,7 @@ export default function NetWorth() {
             </button>
           </div>
         </div>
-        
+
         {/* Add/Edit Modal */}
         <Transition appear show={modalOpen} as="div">
           <Dialog

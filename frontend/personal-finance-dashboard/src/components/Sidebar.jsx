@@ -76,7 +76,9 @@ export default function Sidebar() {
         className={`w-64 ${
           isDarkMode ? "bg-gray-900 text-gray-200" : "bg-gray-100 text-gray-900"
         } p-6 flex flex-col min-h-screen fixed top-0 left-0 z-50 transition-all duration-300
-          ${sidebarOpen ? "block" : "hidden"} md:block md:w-64 md:h-screen md:overflow-hidden`}
+          ${
+            sidebarOpen ? "block" : "hidden"
+          } md:block md:w-64 md:h-screen md:overflow-hidden`}
       >
         {/* User Icon */}
         <div
@@ -89,10 +91,18 @@ export default function Sidebar() {
 
         <div className="w-full max-w-xs">
           <h2 className="text-lg font-semibold break-words mt-5">
-            {user?.displayName || "Name"}
+            <span title={user?.displayName || "Name"}>
+              {user?.displayName && user?.displayName.length > 30
+                ? user?.displayName.slice(0, 15) + "..."
+                : user?.displayName || "Name"}
+            </span>
           </h2>
           <h2 className="text-lg font-semibold break-words mt-5">
-            {user?.email || "No Email"}
+            <span title={user?.email || "No Email"}>
+              {user?.email && user?.email.length > 30
+                ? user?.email.slice(0, 15) + "..."
+                : user?.email || "No Email"}
+            </span>
           </h2>
         </div>
 
@@ -122,11 +132,15 @@ export default function Sidebar() {
         <button
           onClick={handleDarkModeToggle}
           className={`mt-6 p-2 rounded-md flex cursor-pointer items-center transition ${
-            isDarkMode ? "bg-gray-700 text-white hover:bg-gray-600" : "bg-gray-300 text-black hover:bg-gray-400 "
+            isDarkMode
+              ? "bg-gray-700 text-white hover:bg-gray-600"
+              : "bg-gray-300 text-black hover:bg-gray-400 "
           }`}
         >
           {isDarkMode ? <FaSun /> : <FaMoon />}
-          <span className="ml-2">{isDarkMode ? "Light Mode" : "Dark Mode"}</span>
+          <span className="ml-2">
+            {isDarkMode ? "Light Mode" : "Dark Mode"}
+          </span>
         </button>
 
         {/* Logout Button */}

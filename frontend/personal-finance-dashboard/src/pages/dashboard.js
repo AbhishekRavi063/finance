@@ -6,20 +6,44 @@ import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import SummaryCard from "../components/SummaryCard";
 import { FaArrowUp, FaArrowDown, FaBalanceScale } from "react-icons/fa";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid } from "recharts";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 import { PieChart, Pie, Cell } from "recharts";
-import { useRouter } from 'next/router';
-import { fetchAssets, fetchLiabilities } from "../app/utils/assetsandliabilitiesapi";
+import { useRouter } from "next/router";
+import {
+  fetchAssets,
+  fetchLiabilities,
+} from "../app/utils/assetsandliabilitiesapi";
 import { fetchTransactions } from "../app/utils/transactionaspi";
-import useStore from '../app/store/useStore';  // Import Zustand store
+import useStore from "../app/store/useStore"; // Import Zustand store
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Dashboard() {
   const {
-    user, assets, liabilities, transactions, selectedMonth, selectedCategory,
-    setUser, setAssets, setLiabilities, setTransactions, setSelectedMonth, setSelectedCategory, isDarkMode, setDarkMode
-  } = useStore();  // Using Zustand state and actions
+    user,
+    assets,
+    liabilities,
+    transactions,
+    selectedMonth,
+    selectedCategory,
+    setUser,
+    setAssets,
+    setLiabilities,
+    setTransactions,
+    setSelectedMonth,
+    setSelectedCategory,
+    isDarkMode,
+    setDarkMode,
+  } = useStore(); // Using Zustand state and actions
 
   const router = useRouter();
 
@@ -31,12 +55,10 @@ export default function Dashboard() {
         // Fetch data using helper functions
         setAssets(await fetchAssets(user.uid));
         setLiabilities(await fetchLiabilities(user.uid));
-        console.log("🔥 Logged-in User UID:", user.uid); // Debugging
 
         try {
           const transactionData = await fetchTransactions(user.uid);
           setTransactions(transactionData);
-          console.log("📝 All Transactions:", transactionData); // ✅ Console log all transactions
         } catch (error) {
           console.error("❌ Error fetching data:", error);
         }
@@ -48,11 +70,27 @@ export default function Dashboard() {
     return () => unsubscribe();
   }, [router, setUser, setAssets, setLiabilities, setTransactions]);
 
-  const months = ["All", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    "All",
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
   const categories = ["All", ...new Set(transactions.map((t) => t.category))];
 
   const filteredTransactions = transactions.filter((t) => {
-    const transactionMonth = new Date(t.date).toLocaleString("default", { month: "short" });
+    const transactionMonth = new Date(t.date).toLocaleString("default", {
+      month: "short",
+    });
     return (
       (selectedMonth === "All" || transactionMonth === selectedMonth) &&
       (selectedCategory === "All" || t.category === selectedCategory)
@@ -69,41 +107,60 @@ export default function Dashboard() {
 
   const COLORS = ["#22c55e", "#ef4444", "#3b82f6", "#f59e0b", "#10b981"];
 
-  const totalAssets = assets.reduce((sum, asset) => sum + (asset.value || 0), 0);
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + (liability.amount || 0), 0);
+  const totalAssets = assets.reduce(
+    (sum, asset) => sum + (asset.value || 0),
+    0
+  );
+  const totalLiabilities = liabilities.reduce(
+    (sum, liability) => sum + (liability.amount || 0),
+    0
+  );
   const netWorth = totalAssets - totalLiabilities;
 
   // Prepare data for the Income vs Expense chart (Last 6 Months)
   const lastSixMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
   const incomeExpensesData = lastSixMonths.map((month) => {
     const monthTransactions = filteredTransactions.filter(
-      (t) => new Date(t.date).toLocaleString("default", { month: "short" }) === month
+      (t) =>
+        new Date(t.date).toLocaleString("default", { month: "short" }) === month
     );
-    const income = monthTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const income = monthTransactions
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const expenses = monthTransactions
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     return { month, income, expenses };
   });
 
   // Prepare data for the Pie Chart (Expense Breakdown by Category)
-  const expenseCategories = filteredTransactions.filter(t => t.type === 'expense');
-  const categoryExpenseData = [...new Set(expenseCategories.map(t => t.category))].map(category => {
+  const expenseCategories = filteredTransactions.filter(
+    (t) => t.type === "expense"
+  );
+  const categoryExpenseData = [
+    ...new Set(expenseCategories.map((t) => t.category)),
+  ].map((category) => {
     const totalCategoryExpense = expenseCategories
-      .filter(t => t.category === category)
+      .filter((t) => t.category === category)
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     return { name: category, value: totalCategoryExpense };
   });
 
   // Prepare data for the Pie Chart (Income Breakdown by Category)
-  const incomeCategories = filteredTransactions.filter(t => t.type === 'income');
-  const categoryIncomeData = [...new Set(incomeCategories.map(t => t.category))].map(category => {
+  const incomeCategories = filteredTransactions.filter(
+    (t) => t.type === "income"
+  );
+  const categoryIncomeData = [
+    ...new Set(incomeCategories.map((t) => t.category)),
+  ].map((category) => {
     const totalCategoryIncome = incomeCategories
-      .filter(t => t.category === category)
+      .filter((t) => t.category === category)
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     return { name: category, value: totalCategoryIncome };
   });
 
   const toggleDarkMode = () => {
-    setDarkMode(!isDarkMode);  // Toggle between true and false
+    setDarkMode(!isDarkMode); // Toggle between true and false
   };
 
   return (
@@ -118,17 +175,24 @@ export default function Dashboard() {
           isDarkMode ? "bg-gray-800" : "bg-gray-300"
         }`}
       >
-        <h1 className={`text-3xl font-bold mb-6 transition-all duration-300 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}>Dashboard</h1>
-        <p className={`text-xl font-semibold mb-6 transition-all duration-300 ${
-              isDarkMode ? "text-white" : "text-gray-900"
-            }`}>Your financial overview</p>
+        <h1
+          className={`text-3xl font-bold mb-6 transition-all duration-300 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Dashboard
+        </h1>
+        <p
+          className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+            isDarkMode ? "text-white" : "text-gray-900"
+          }`}
+        >
+          Your financial overview
+        </p>
 
         <DashboardHeader />
 
         <div className="flex flex-wrap md:flex-nowrap space-x-4 mt-4">
-
           {/* Month Filter */}
           <div className="flex flex-col w-full md:w-1/3">
             <label htmlFor="month" className="text-sm text-gray-300">
@@ -238,9 +302,11 @@ export default function Dashboard() {
               : "border-gray-300 bg-gray-100"
           }`}
         >
-          <h2 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+          <h2
+            className={`text-xl font-semibold mb-6 transition-all duration-300 ${
               isDarkMode ? "text-white" : "text-gray-900"
-            }`}>
+            }`}
+          >
             Expense Breakdown by Category
           </h2>
           <ResponsiveContainer width="100%" height={300}>
@@ -273,9 +339,11 @@ export default function Dashboard() {
               : "border-gray-300 bg-gray-100"
           }`}
         >
-          <h2 className={`text-xl font-semibold mb-6 transition-all duration-300 ${
+          <h2
+            className={`text-xl font-semibold mb-6 transition-all duration-300 ${
               isDarkMode ? "text-white" : "text-gray-900"
-            }`}>
+            }`}
+          >
             Income Breakdown by Category
           </h2>
           <ResponsiveContainer width="100%" height={300}>
