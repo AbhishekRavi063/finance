@@ -20,7 +20,6 @@
 /* Global Background Styling */
 html,
 body {
-  background-color:  #111827; /* Same as your scrollbar track color */
   min-height: 100%; /* Ensure full height on small screens */
   margin: 0; /* Remove default margin */
 }
