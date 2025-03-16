@@ -238,19 +238,18 @@ export default function NetWorth() {
               >
                 <FaPlus /> Add Liability
               </button>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <FaSearch className="text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search.."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={` p-2 rounded-md text-white transition-all duration-300 ${
-                  isDarkMode ? "bg-gray-800" : "bg-gray-300"
-                }`}
-              />
+              <div className="flex items-center space-x-2">
+                <FaSearch className="text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search.."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={` p-2 rounded-md text-white transition-all duration-300 ${
+                    isDarkMode ? "bg-gray-800" : "bg-gray-300"
+                  }`}
+                />
+              </div>
             </div>
           </div>
 
