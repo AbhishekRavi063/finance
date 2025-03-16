@@ -134,7 +134,7 @@ export default function Transactions() {
     <div
       className={`min-h-screen transition-all duration-300 ${
         isDarkMode ? "bg-gray-900 text-white" : "bg-white text-black"
-      } lg:flex `}
+      } lg:flex  md-flex `}
     >
       <Sidebar />
       <div
@@ -397,7 +397,11 @@ export default function Transactions() {
               Previous
             </button>
 
-            <div className={isDarkMode ? "text-gray-300" : "text-gray-800"}>
+            <div
+              className={`text-gray-800 ${
+                isDarkMode ? "text-gray-300" : ""
+              } text-sm md:text-base`}
+            >
               Page {currentPage} of {totalPages}
             </div>
 

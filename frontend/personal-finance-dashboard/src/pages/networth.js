@@ -401,7 +401,11 @@ export default function NetWorth() {
               Previous
             </button>
 
-            <div className={isDarkMode ? "text-gray-300" : "text-gray-800"}>
+            <div
+              className={`text-gray-800 ${
+                isDarkMode ? "text-gray-300" : ""
+              } text-sm md:text-base`}
+            >
               Page {currentPage} of {totalPages}
             </div>
 
