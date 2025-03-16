@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { auth } from '../../lib/firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
 import LoginForm from './login';
+import { CircularProgress } from '@mui/material';
 
 export default function Home() {
   const router = useRouter();
@@ -32,7 +33,14 @@ export default function Home() {
     }
   };
 
-  if (loading) return <div>Loading...</div>; // Prevents UI flickering
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+        <CircularProgress size={50} />
+        <p className="mt-4 text-gray-700 font-medium">Loading, please wait...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center">
