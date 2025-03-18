@@ -146,6 +146,8 @@ const categoryExpenseData = [...new Set(expenseCategories.map((t) => String(t.ca
     return { name: category, value: totalCategoryExpense };
   }
 );
+  const incomeCategories = filteredTransactions.filter((t) => t.type === "income");
+
 
 const categoryIncomeData = [...new Set(incomeCategories.map((t) => String(t.category)))].map(
   (category) => {
