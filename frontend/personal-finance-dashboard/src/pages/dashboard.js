@@ -137,27 +137,25 @@ export default function Dashboard() {
   const expenseCategories = filteredTransactions.filter(
     (t) => t.type === "expense"
   );
-  const categoryExpenseData = [
-    ...new Set(expenseCategories.map((t) => t.category)),
-  ].map((category) => {
+  
+const categoryExpenseData = [...new Set(expenseCategories.map((t) => String(t.category)))].map(
+  (category) => {
     const totalCategoryExpense = expenseCategories
-      .filter((t) => t.category === category)
+      .filter((t) => String(t.category) === category)
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     return { name: category, value: totalCategoryExpense };
-  });
+  }
+);
 
-  // Prepare data for the Pie Chart (Income Breakdown by Category)
-  const incomeCategories = filteredTransactions.filter(
-    (t) => t.type === "income"
-  );
-  const categoryIncomeData = [
-    ...new Set(incomeCategories.map((t) => t.category)),
-  ].map((category) => {
+const categoryIncomeData = [...new Set(incomeCategories.map((t) => String(t.category)))].map(
+  (category) => {
     const totalCategoryIncome = incomeCategories
-      .filter((t) => t.category === category)
+      .filter((t) => String(t.category) === category)
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
     return { name: category, value: totalCategoryIncome };
-  });
+  }
+);
+
 
   const toggleDarkMode = () => {
     setDarkMode(!isDarkMode); // Toggle between true and false
