@@ -320,7 +320,7 @@ const categoryIncomeData = [...new Set(incomeCategories.map((t) => String(t.cate
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
-                label
+                label={({ name }) => name}
               >
                 {categoryExpenseData.map((entry, index) => (
                   <Cell
@@ -358,7 +358,7 @@ const categoryIncomeData = [...new Set(incomeCategories.map((t) => String(t.cate
                 cy="50%"
                 outerRadius={80}
                 fill="#22c55e"
-                label
+                label={({ name }) => name}
               >
                 {categoryIncomeData.map((entry, index) => (
                   <Cell
