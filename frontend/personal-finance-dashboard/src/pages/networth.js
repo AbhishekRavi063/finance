@@ -52,15 +52,16 @@ export default function NetWorth() {
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
-        setAssets(await fetchAssets(user.uid));
-        setLiabilities(await fetchLiabilities(user.uid));
+        fetchAssets(user.uid).then(setAssets);
+        fetchLiabilities(user.uid).then(setLiabilities);
       }
     });
-    return () => unsubscribe();
+    return unsubscribe; // No need for an extra arrow function
   }, [setUser, setAssets, setLiabilities]);
+  
 
   async function handleDelete() {
     if (itemToDelete) {
@@ -166,6 +167,7 @@ export default function NetWorth() {
   const totalPages = Math.ceil(totalItems.length / rowsPerPage);
   const startIndex = (currentPage - 1) * rowsPerPage;
   const currentItems = totalItems.slice(startIndex, startIndex + rowsPerPage);
+  console.log("Current Items:", currentItems);
 
   return (
     <div
@@ -294,9 +296,11 @@ export default function NetWorth() {
                           } hover:bg-gray-300 text-gray-800`
                     }`}
                   >
+                    {/* Updated Logic for Asset/Liability Check */}
                     <td className="p-3 text-left">
-                      {item.type === "asset" ? "Asset" : "Liability"}
+                      {item.amount !== undefined ? "Liability" : "Asset"}
                     </td>
+
                     <td className="p-3 text-left truncate max-w-[200px] overflow-hidden">
                       <span title={item.description}>
                         {item.description.length > 30
@@ -307,9 +311,9 @@ export default function NetWorth() {
 
                     <td
                       className={`p-3 text-left ${
-                        item.type === "asset"
-                          ? "text-green-500"
-                          : "text-red-500"
+                        item.amount !== undefined
+                          ? "text-red-500"
+                          : "text-green-500"
                       }`}
                     >
                       <span title={`₹${item.value || item.amount}`}>
