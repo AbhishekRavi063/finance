@@ -25,11 +25,9 @@ import {
 import { fetchTransactions } from "../app/utils/transactionaspi";
 import useStore from "../app/store/useStore"; // Import Zustand store
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export default function Dashboard() {
   const {
-    user,
     assets,
     liabilities,
     transactions,

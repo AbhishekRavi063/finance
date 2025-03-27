@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+
 import {
   FaChartBar,
   FaWallet,
@@ -14,7 +16,7 @@ import {
 import { useEffect, useState } from "react";
 import { auth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
-import { useRouter } from "next/router";
+// import { useRouter } from "next/router";
 import useStore from "../app/store/useStore"; // Import Zustand store
 
 export default function Sidebar() {
